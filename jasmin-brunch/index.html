@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Jasmin's Birthday Brunch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: a single printed-menu column inside a gilt frame, sized for a phone held in one hand. Deliberately single-look (cream invitation stock). */
+:root{
+  --paper:#F3ECDD;
+  --paper-deep:#EAE0CB;
+  --ink:#1A1612;
+  --ink-soft:#4A4036;
+  --gold:#9C7A2E;
+  --gold-soft:#C8AE6E;
+  --display:"Cormorant Garamond","Cormorant",Garamond,"Times New Roman",serif;
+  --label:"Cinzel","Trajan Pro",Georgia,serif;
+  color-scheme:light;
+}
+html{background:var(--paper)}
+body{background:var(--paper);color:var(--ink);font-family:var(--display);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px;}
+.card{position:relative;max-width:440px;margin:0 auto;padding:44px 26px 40px;
+  border:1.5px solid var(--gold);outline:1px solid var(--gold-soft);outline-offset:-9px;
+  background:radial-gradient(120% 80% at 50% 0%,var(--paper) 55%,var(--paper-deep) 100%);
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:0}
+.corner{position:absolute;width:74px;height:74px;color:var(--gold)}
+.corner svg{width:100%;height:100%;display:block}
+.tl{top:6px;left:6px}.tr{top:6px;right:6px;transform:scaleX(-1)}
+.bl{bottom:6px;left:6px;transform:scaleY(-1)}.br{bottom:6px;right:6px;transform:scale(-1,-1)}
+.crown{width:92px;color:var(--gold);margin-bottom:14px}
+.crown svg{width:100%;height:auto;display:block}
+.eyebrow,.section h2{font-family:var(--label);font-weight:400;color:var(--gold);letter-spacing:.22em;text-transform:uppercase}
+.eyebrow{font-size:.78rem;margin:0}
+h1{font-family:var(--display);font-style:italic;font-weight:600;font-size:clamp(4rem,19vw,5.6rem);line-height:.95;margin:.06em 0 .04em;letter-spacing:-.01em}
+.date{font-style:italic;font-size:1.2rem;color:var(--ink-soft);margin:0}
+.rule{width:min(220px,70%);color:var(--gold);margin:26px 0}
+.rule svg{width:100%;height:auto;display:block}
+.section{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;width:100%}
+.section:last-of-type{margin-bottom:0}
+.section h2{font-size:.74rem;margin:0}
+.dish{display:flex;flex-direction:column;gap:2px}
+.dish h3{font-weight:600;font-size:1.65rem;line-height:1.1;margin:0;text-wrap:balance}
+.dish p{font-style:italic;font-size:1.06rem;line-height:1.35;color:var(--ink-soft);margin:0 auto;max-width:30ch;text-wrap:balance}
+.sign{font-style:italic;font-size:1.2rem;margin:0}
+@media (prefers-reduced-motion:no-preference){
+  .card{animation:settle .9s ease-out both}
+  @keyframes settle{from{transform:translateY(6px)}to{transform:none}}
+}
+</style>
+</head>
+<body>
+
+<main class="card" aria-label="Birthday brunch menu">
+  <span class="corner tl" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 96 C6 50 20 18 52 8 C66 4 80 4 94 4"/><path d="M14 96 C14 56 28 28 56 16"/><path d="M34 46 c-12 0-16-14-6-18 c8-3 12 6 6 9"/><path d="M58 22 c-10-2-10-14 0-14 c7 0 8 8 3 9"/><path d="M22 70 c-8 2-12-8-5-11 c5-2 8 4 4 6"/><ellipse cx="44" cy="30" rx="3" ry="8" transform="rotate(-40 44 30)"/><ellipse cx="24" cy="54" rx="3" ry="8" transform="rotate(-70 24 54)"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg></span>
+  <span class="corner tr" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 96 C6 50 20 18 52 8 C66 4 80 4 94 4"/><path d="M14 96 C14 56 28 28 56 16"/><path d="M34 46 c-12 0-16-14-6-18 c8-3 12 6 6 9"/><path d="M58 22 c-10-2-10-14 0-14 c7 0 8 8 3 9"/><path d="M22 70 c-8 2-12-8-5-11 c5-2 8 4 4 6"/><ellipse cx="44" cy="30" rx="3" ry="8" transform="rotate(-40 44 30)"/><ellipse cx="24" cy="54" rx="3" ry="8" transform="rotate(-70 24 54)"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg></span>
+  <span class="corner bl" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 96 C6 50 20 18 52 8 C66 4 80 4 94 4"/><path d="M14 96 C14 56 28 28 56 16"/><path d="M34 46 c-12 0-16-14-6-18 c8-3 12 6 6 9"/><path d="M58 22 c-10-2-10-14 0-14 c7 0 8 8 3 9"/><path d="M22 70 c-8 2-12-8-5-11 c5-2 8 4 4 6"/><ellipse cx="44" cy="30" rx="3" ry="8" transform="rotate(-40 44 30)"/><ellipse cx="24" cy="54" rx="3" ry="8" transform="rotate(-70 24 54)"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg></span>
+  <span class="corner br" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 96 C6 50 20 18 52 8 C66 4 80 4 94 4"/><path d="M14 96 C14 56 28 28 56 16"/><path d="M34 46 c-12 0-16-14-6-18 c8-3 12 6 6 9"/><path d="M58 22 c-10-2-10-14 0-14 c7 0 8 8 3 9"/><path d="M22 70 c-8 2-12-8-5-11 c5-2 8 4 4 6"/><ellipse cx="44" cy="30" rx="3" ry="8" transform="rotate(-40 44 30)"/><ellipse cx="24" cy="54" rx="3" ry="8" transform="rotate(-70 24 54)"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg></span>
+
+  <div class="crown" aria-hidden="true"><svg viewBox="0 0 120 84" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M14 66 L18 30 L36 46 L46 22 L56 40 L60 12 L64 40 L74 22 L84 46 L102 30 L106 66 Z"/><path d="M12 66 H108 V76 H12 Z"/><g fill="currentColor" stroke="none"><circle cx="18" cy="26" r="3.6"/><circle cx="46" cy="18" r="3.2"/><circle cx="60" cy="8" r="4"/><circle cx="74" cy="18" r="3.2"/><circle cx="102" cy="26" r="3.6"/></g><path d="M60 52 l5 5 -5 5 -5-5 Z M40 55 l3 3 -3 3 -3-3 Z M80 55 l3 3 -3 3 -3-3 Z" stroke-width="1.6"/><g fill="currentColor" stroke="none"><circle cx="24" cy="71" r="1.6"/><circle cx="36" cy="71" r="1.6"/><circle cx="48" cy="71" r="1.6"/><circle cx="60" cy="71" r="1.6"/><circle cx="72" cy="71" r="1.6"/><circle cx="84" cy="71" r="1.6"/><circle cx="96" cy="71" r="1.6"/></g></svg></div>
+
+  <p class="eyebrow">A birthday brunch for</p>
+  <h1>Jasmin</h1>
+  <p class="date">Friday, the thirtieth of October</p>
+
+  <div class="rule" aria-hidden="true"><svg viewBox="0 0 420 40"><line x1="0" y1="20" x2="180" y2="20" stroke="currentColor" stroke-width="2"/><line x1="240" y1="20" x2="420" y2="20" stroke="currentColor" stroke-width="2"/><path d="M210 4 L226 20 L210 36 L194 20 Z" fill="currentColor"/><circle cx="183" cy="20" r="4" fill="currentColor"/><circle cx="237" cy="20" r="4" fill="currentColor"/></svg></div>
+
+  <section class="section">
+    <h2>To raise</h2>
+    <div class="dish"><h3>Mimosas</h3><p>Cava and fresh orange</p></div>
+    <div class="dish"><h3>Shaah</h3><p>Somali spiced tea with cardamom, cinnamon and ginger</p></div>
+  </section>
+
+  <section class="section">
+    <h2>To begin</h2>
+    <div class="dish"><h3>Canjeero</h3><p>Warm Somali pancakes with butter and honey</p></div>
+  </section>
+
+  <section class="section">
+    <h2>The main event</h2>
+    <div class="dish"><h3>Full English (Veg)</h3><p>Scrambled eggs, golden halloumi, roasted tomatoes and mushrooms, beans and toasted sourdough</p></div>
+  </section>
+
+  <div class="rule" aria-hidden="true"><svg viewBox="0 0 420 40"><line x1="0" y1="20" x2="180" y2="20" stroke="currentColor" stroke-width="2"/><line x1="240" y1="20" x2="420" y2="20" stroke="currentColor" stroke-width="2"/><path d="M210 4 L226 20 L210 36 L194 20 Z" fill="currentColor"/><circle cx="183" cy="20" r="4" fill="currentColor"/><circle cx="237" cy="20" r="4" fill="currentColor"/></svg></div>
+
+  <p class="sign">Prepared with love</p>
+</main>
+
+</body>
+</html>
