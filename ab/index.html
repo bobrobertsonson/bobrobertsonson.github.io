@@ -25,7 +25,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </head>
 <body>
 <title>Level-Matched A/B</title>
-<script src="vendor/lame.min.js"></script>
 <style>
 @font-face{font-family:"Barlow Condensed";font-weight:500;font-display:swap;src:url(fonts/barlow-condensed-latin-500-normal.woff2) format("woff2")}
 @font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format("woff2")}
@@ -189,6 +188,82 @@ tr.sel td{background:rgba(255,106,26,.08)}
 .note{font:500 .82rem/1.45 var(--label);letter-spacing:.02em;color:var(--bone-mute);margin:0;max-width:62ch}
 .note b{color:var(--bone);font-weight:600}
 .reveal{font-size:1rem;text-transform:uppercase}
+
+/* ---- v2 additions: collapsible panels, references, balance EQ ---- */
+button.plate{width:100%;border:0;cursor:pointer;font:inherit;text-align:left;-webkit-tap-highlight-color:transparent}
+.plate .chev{flex:none;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #3b362e;margin-left:6px;transition:transform .15s}
+.plate[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.plate .r{display:flex;align-items:center;gap:4px;min-width:0}
+.body{display:flex;flex-direction:column;gap:12px}
+.panel.collapsed .body{display:none}
+.panel.collapsed .panel-in{padding-bottom:0}
+.statusbar{padding:6px 10px}
+.statusbar:has(#status:empty){display:none}
+
+.sublbl{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.reflist{display:flex;flex-direction:column;gap:8px}
+.ref{display:grid;grid-template-columns:40px 1fr auto 40px;gap:8px;align-items:center}
+.ref .selbtn{appearance:none;border:0;cursor:pointer;height:40px;border-radius:2px;background:var(--well-raised);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px var(--line),0 2px 3px rgba(0,0,0,.6)}
+.ref .selbtn i{width:10px;height:10px;border-radius:50%;background:#26221c;box-shadow:inset 0 1px 2px rgba(0,0,0,.9)}
+.ref .selbtn[aria-pressed="true"]{box-shadow:inset 0 0 0 1px var(--body),0 2px 3px rgba(0,0,0,.6)}
+.ref .selbtn[aria-pressed="true"] i{background:var(--body);box-shadow:0 0 5px var(--body),0 0 10px rgba(127,180,234,.5)}
+.ref .lufs{font-size:1.05rem;line-height:1;min-width:3.6em;text-align:right}
+.ref .x{appearance:none;border:0;cursor:pointer;height:40px;border-radius:2px;background:transparent;color:var(--bone-mute);font:700 1.1rem/1 var(--label);box-shadow:inset 0 0 0 1px var(--line)}
+.ref .x:active{color:var(--alert)}
+.empty-refs{padding:10px;font-size:.9rem;text-transform:uppercase;text-align:center}
+.row2{display:grid;grid-template-columns:1fr auto;gap:8px}
+
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{appearance:none;border:0;cursor:pointer;flex:none;max-width:46%;min-height:38px;padding:0 10px;border-radius:2px;display:inline-flex;align-items:center;gap:7px;
+  font:700 .74rem/1 var(--label);letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);background:var(--well-raised);box-shadow:inset 0 0 0 1px var(--line),0 2px 3px rgba(0,0,0,.6)}
+.chip i{flex:none;width:8px;height:8px;border-radius:50%;background:#26221c;box-shadow:inset 0 1px 2px rgba(0,0,0,.9)}
+.chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip[aria-pressed="true"]{color:var(--bone);box-shadow:inset 0 0 0 1px var(--body),0 2px 3px rgba(0,0,0,.6)}
+.chip[aria-pressed="true"] i{background:var(--body);box-shadow:0 0 5px var(--body)}
+
+/* balance EQ */
+.spec{padding:6px}
+.spec canvas{display:block;width:100%;height:210px;touch-action:none}
+.spec .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;font-size:.95rem;line-height:1.4;pointer-events:none;text-transform:uppercase}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px}
+.legend .lamp{font-size:.64rem}
+.legend .dash{display:inline-block;width:16px;height:0;border-top:2px dashed var(--body)}
+.legend .line{display:inline-block;width:16px;height:3px;background:var(--lcd-amber);box-shadow:0 0 4px var(--lcd-amber)}
+.bandsel{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.bandsel button{appearance:none;border:0;cursor:pointer;min-height:38px;border-radius:2px;font:700 .8rem/1 var(--label);letter-spacing:.1em;color:var(--bone-dim);background:var(--well-raised);
+  box-shadow:inset 0 0 0 1px var(--line),0 2px 3px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.bandsel button small{font:700 .58rem/1 var(--dot);color:#a27a44;letter-spacing:0}
+.bandsel button[aria-selected="true"]{background:var(--blade);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 3px rgba(0,0,0,.6)}
+.bandsel button[aria-selected="true"] small{color:rgba(20,17,13,.75)}
+.faders{display:flex;flex-direction:column;gap:10px}
+.fader{display:grid;grid-template-columns:44px 1fr 86px;gap:10px;align-items:center}
+.fader .glass{text-align:right;padding:5px 8px}
+.fader .glass b{font-size:.95rem}
+.fader.off{opacity:.4}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:32px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--glass);box-shadow:inset 0 1px 3px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.06)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--glass)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:28px;margin-top:-11px;border-radius:2px;
+  background:linear-gradient(180deg,#d9d5cb,#9a968d 45%,#3a3833 50%,#9a968d 55%,#c9c5bb);box-shadow:0 2px 3px rgba(0,0,0,.7),inset 0 0 0 1px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-thumb{width:18px;height:28px;border:0;border-radius:2px;background:linear-gradient(180deg,#d9d5cb,#9a968d 45%,#3a3833 50%,#9a968d 55%,#c9c5bb)}
+input[type=range]:disabled{opacity:.4}
+.eqkeys{display:grid;grid-template-columns:1fr 1.3fr 1fr 1fr;gap:8px}
+.eqkeys .btn{padding:0 6px;min-width:0}
+.eqinfo{padding:6px 10px}
+.eqinfo b{white-space:normal}
+.exp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.exp .btn{padding:0 8px}
+.card{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.card table td{font-family:var(--dot);font-weight:700;font-size:.8rem;color:var(--lcd-amber);text-align:left;white-space:normal}
+.card table td{white-space:nowrap;padding:5px 4px}.card table td:nth-child(n+2){text-align:right}.card tr.h td{font:700 .6rem/1 var(--label);letter-spacing:.12em;text-transform:uppercase;color:#a27a44;text-shadow:none}
+.card table td.off{opacity:.45}
+.card .cardfoot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .cardfoot small{opacity:.7}
+.how{font:500 .78rem/1.45 var(--label);color:var(--bone-mute);margin:0}
+.how b{color:var(--bone);font-weight:600}
+.pick.disabled{opacity:.4;pointer-events:none}
 </style>
 
 <div class="unit">
@@ -199,526 +274,151 @@ tr.sel td{background:rgba(255,106,26,.08)}
     </div>
     <div class="lampbox"><span class="lamp" id="live" style="--c:var(--ok)"><i></i>Live</span></div>
   </div>
+  <div class="glass green statusbar" role="status"><b id="status"></b><div class="bar" id="bar" hidden><i id="barFill"></i></div></div>
 
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Inputs</b><span>WAV · AIFF · FLAC · MP3</span></div>
-    <div class="inrow">
-      <span class="path a" aria-hidden="true"></span>
-      <div class="glass amber"><b id="nameA">No file loaded</b><small id="metaA">Channel A · Blade</small></div>
-      <label class="btn pick">Load A<input type="file" id="fileA" accept="audio/*,.wav,.mp3,.m4a,.aif,.aiff,.flac" aria-label="Load file A"></label>
-    </div>
-    <div class="inrow">
-      <span class="path b" aria-hidden="true"></span>
-      <div class="glass amber"><b id="nameB">No file loaded</b><small id="metaB">Channel B · Body</small></div>
-      <label class="btn pick">Load B<input type="file" id="fileB" accept="audio/*,.wav,.mp3,.m4a,.aif,.aiff,.flac" aria-label="Load file B"></label>
-    </div>
-    <button class="btn" id="demo">Load demo pair</button>
-  </div></section>
-
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Scope</b><span id="scopeAside">At playback gain</span></div>
-    <div class="glass green scope">
-      <canvas id="cv" aria-label="Waveforms of A and B. Tap to seek, drag to set a loop."></canvas>
-      <div class="empty" id="scopeEmpty">No signal<br>Load A and B</div>
-    </div>
-    <div class="scope-foot"><span class="lbl" id="loopInfo">Tap to seek · drag to loop</span><button class="linkbtn" id="clrLoop" hidden>Clear loop</button></div>
-  </div></section>
-
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Listen</b><span>Space flips sides</span></div>
-    <div class="glass amber clockrow">
-      <div class="clock" id="clock"></div>
-      <div class="clockside"><span class="lbl" style="color:#a27a44">Length</span><span class="dur" id="dur">0:00</span></div>
-    </div>
-    <div class="pads" role="group" aria-label="Choose which file you hear">
-      <button class="pad p1" id="selA" data-on="0" disabled>
-        <img src="assets/vpad-a-off.webp" alt=""><img class="on" src="assets/vpad-a-on.webp" alt="">
-        <span class="face"><span class="big" id="bigA">A</span><span class="sub"><span id="stA">Blade</span><span id="gA"></span></span></span>
-      </button>
-      <button class="pad p2" id="selB" data-on="0" disabled>
-        <img src="assets/vpad-b-off.webp" alt=""><img class="on" src="assets/vpad-b-on.webp" alt="">
-        <span class="face"><span class="big" id="bigB">B</span><span class="sub"><span id="stB">Body</span><span id="gB"></span></span></span>
-      </button>
-    </div>
-    <div class="keys">
-      <button class="btn primary" id="play" disabled><span id="playLbl">Play</span></button>
-      <button class="btn tog" id="loop" aria-pressed="true">Loop</button>
-      <button class="btn tog" id="cue" aria-pressed="false">Cue</button>
-      <button class="btn tog" id="blind" aria-pressed="false">Blind</button>
-    </div>
-    <div class="glass green" id="revealWin" hidden><div class="reveal" id="reveal"></div></div>
-  </div></section>
-
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Monitor path</b><span>Tap or drag</span></div>
-    <div class="knobs">
-      <div class="knob" id="kVol"></div>
-      <div class="knob" id="kPlat"></div>
-      <div class="knob" id="kCodec"></div>
-      <div class="knob" id="kSpk"></div>
-    </div>
-    <div class="glass green statuswin"><div class="status" id="status"></div><div class="bar" id="bar" hidden><i id="barFill"></i></div></div>
-  </div></section>
-
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Readouts</b><span id="roAside">Source files</span></div>
-    <div class="glass amber tab">
-      <table>
-        <thead><tr><th>Measure</th><th><span class="dot" style="--c:var(--blade)"></span>A</th><th><span class="dot" style="--c:var(--body)"></span>B</th><th>B−A</th><th></th></tr></thead>
-        <tbody id="ro"></tbody>
-      </table>
+  <section class="panel" id="pInputs"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Inputs</b><span class="r"><span>Mix + up to 6 refs</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="sublbl"><span class="lbl">Your mix</span><span class="lbl" style="color:var(--blade-hi)">Blade</span></div>
+      <div class="inrow">
+        <span class="path a" aria-hidden="true"></span>
+        <div class="glass amber"><b id="nameMix">No mix loaded</b><small id="metaMix">WAV · AIFF · FLAC · MP3</small></div>
+        <label class="btn pick">Load<input type="file" id="fileMix" accept="audio/*,.wav,.mp3,.m4a,.aif,.aiff,.flac" aria-label="Load your mix"></label>
+      </div>
+      <div class="sublbl"><span class="lbl">References</span><span class="lbl" style="color:var(--body)">Body · <span id="refCount">0 / 6</span></span></div>
+      <div class="reflist" id="refList"></div>
+      <div class="row2">
+        <label class="btn pick" id="addRefs">+ Add references<input type="file" id="fileRefs" multiple accept="audio/*,.wav,.mp3,.m4a,.aif,.aiff,.flac" aria-label="Add reference tracks"></label>
+        <button class="btn" id="demo">Demo</button>
+      </div>
     </div>
   </div></section>
 
-  <section class="panel"><div class="panel-in">
-    <div class="plate"><b>Platform gain</b><span>dB applied</span></div>
-    <div class="glass amber tab">
-      <table>
-        <thead><tr><th>Service</th><th><span class="dot" style="--c:var(--blade)"></span>A</th><th><span class="dot" style="--c:var(--body)"></span>B</th><th>Louder</th></tr></thead>
-        <tbody id="report"></tbody>
-      </table>
+  <section class="panel" id="pScope"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Scope</b><span class="r"><span id="scopeAside">At playback gain</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="glass green scope">
+        <canvas id="cv" aria-label="Waveforms of your mix and the selected reference. Tap to seek, drag to set a loop."></canvas>
+        <div class="empty" id="scopeEmpty">No signal<br>Load a mix and a reference</div>
+      </div>
+      <div class="scope-foot"><span class="lbl" id="loopInfo">Tap to seek · drag to loop</span><button class="linkbtn" id="clrLoop" hidden>Clear loop</button></div>
     </div>
-    <p class="note">Red means the service turns that file down, so the extra limiting bought nothing there. Green means it turns it up, stopping at −1 dBTP. Rules are simplified and change over time. The codec is real MP3 encoding standing in for Ogg and AAC streams. <b>Hearing nothing on iPhone?</b> Older iOS versions mute web audio when the silent switch is on.</p>
+  </div></section>
+
+  <section class="panel" id="pListen"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Listen</b><span class="r"><span>Space flips · 1–6 picks ref</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="glass amber clockrow">
+        <div class="clock" id="clock"></div>
+        <div class="clockside"><span class="lbl" style="color:#a27a44">Length</span><span class="dur" id="dur">0:00</span></div>
+      </div>
+      <div class="pads" role="group" aria-label="Choose what you hear">
+        <button class="pad p1" id="padL" data-on="0" disabled>
+          <img src="assets/vpad-a-off.webp" alt=""><img class="on" src="assets/vpad-a-on.webp" alt="">
+          <span class="face"><span class="big" id="bigL">MIX</span><span class="sub"><span id="stL">Blade</span><span id="gL"></span></span></span>
+        </button>
+        <button class="pad p2" id="padR" data-on="0" disabled>
+          <img src="assets/vpad-b-off.webp" alt=""><img class="on" src="assets/vpad-b-on.webp" alt="">
+          <span class="face"><span class="big" id="bigR">REF</span><span class="sub"><span id="stR">Body</span><span id="gR"></span></span></span>
+        </button>
+      </div>
+      <div class="chips" id="refChips" role="group" aria-label="Which reference the REF pad plays"></div>
+      <div class="keys">
+        <button class="btn primary" id="play" disabled><span id="playLbl">Play</span></button>
+        <button class="btn tog" id="loop" aria-pressed="true">Loop</button>
+        <button class="btn tog" id="cue" aria-pressed="false">Cue</button>
+        <button class="btn tog" id="blind" aria-pressed="false">Blind</button>
+      </div>
+      <div class="glass green" id="revealWin" hidden><div class="reveal" id="reveal"></div></div>
+    </div>
+  </div></section>
+
+  <section class="panel" id="pEq"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Balance EQ</b><span class="r"><span id="eqAside">On your mix</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="glass green spec">
+        <canvas id="eqcv" aria-label="Spectrum of the reference and your mix with the EQ curve. Drag a numbered node to change a band."></canvas>
+        <div class="empty" id="eqEmpty">Load a mix and a reference<br>to see their tone side by side</div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span class="lamp on" style="--c:var(--body)"><i></i>Reference</span>
+        <span class="lamp on" style="--c:var(--blade)"><i></i>Mix + EQ</span>
+        <span class="lamp"><span class="dash"></span>Target</span>
+        <span class="lamp"><span class="line"></span>EQ</span>
+      </div>
+      <div class="bandsel" role="tablist" aria-label="EQ band" id="bandSel"></div>
+      <div class="faders">
+        <div class="fader" id="rowF"><span class="lbl">Freq</span><input type="range" id="fF" min="0" max="1000" step="1" aria-label="Frequency"><div class="glass amber"><b id="vF">—</b></div></div>
+        <div class="fader" id="rowG"><span class="lbl">Gain</span><input type="range" id="fG" min="-120" max="120" step="1" aria-label="Gain"><div class="glass amber"><b id="vG">—</b></div></div>
+        <div class="fader" id="rowQ"><span class="lbl">Q</span><input type="range" id="fQ" min="0" max="1000" step="1" aria-label="Q"><div class="glass amber"><b id="vQ">—</b></div></div>
+      </div>
+      <div class="eqkeys">
+        <button class="btn tog" id="eqOn" aria-pressed="true">EQ in</button>
+        <button class="btn primary" id="eqMatch" disabled>Match ref</button>
+        <button class="btn" id="eqAmt">75%</button>
+        <button class="btn" id="eqFlat">Flat</button>
+      </div>
+      <div class="glass green eqinfo"><b id="eqInfo">Match fits five bands so your mix leans toward the selected reference.</b></div>
+      <div class="exp">
+        <button class="btn" id="expProq">Pro-Q 4 preset</button>
+        <button class="btn" id="expLogic">Logic Channel EQ</button>
+      </div>
+      <div class="glass amber card" id="logicCard" hidden>
+        <table><tbody id="logicRows"></tbody></table>
+        <div class="cardfoot"><small>Channel EQ · dial these in</small><button class="linkbtn" id="logicCopy">Copy</button></div>
+      </div>
+      <p class="how" id="howProq" hidden><b>Pro-Q 4:</b> save the file to your Mac (AirDrop works), then in Pro-Q open the preset menu, choose Load, and pick it. Pro-Q 4 reads Pro-Q 3 presets.</p>
+    </div>
+  </div></section>
+
+  <section class="panel" id="pMon"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Monitor path</b><span class="r"><span>Tap or drag</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="knobs">
+        <div class="knob" id="kVol"></div>
+        <div class="knob" id="kPlat"></div>
+        <div class="knob" id="kCodec"></div>
+        <div class="knob" id="kSpk"></div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="panel" id="pRead"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Readouts</b><span class="r"><span id="roAside">Source files</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="glass amber tab">
+        <table>
+          <thead><tr><th>Measure</th><th><span class="dot" style="--c:var(--blade)"></span>Mix</th><th><span class="dot" style="--c:var(--body)"></span>Ref</th><th>Ref−Mix</th><th></th></tr></thead>
+          <tbody id="ro"></tbody>
+        </table>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="panel" id="pPlat"><div class="panel-in">
+    <button class="plate" aria-expanded="true"><b>Platform gain</b><span class="r"><span>dB applied</span><i class="chev"></i></span></button>
+    <div class="body">
+      <div class="glass amber tab">
+        <table>
+          <thead><tr><th>Service</th><th><span class="dot" style="--c:var(--blade)"></span>Mix</th><th><span class="dot" style="--c:var(--body)"></span>Ref</th><th>Louder</th></tr></thead>
+          <tbody id="report"></tbody>
+        </table>
+      </div>
+      <p class="note">Red means the service turns that file down, so the extra limiting bought nothing there. Green means it turns it up, stopping at −1 dBTP. Your mix is measured with the EQ applied. Rules are simplified and change over time. The codec is real MP3 encoding standing in for Ogg and AAC streams.</p>
+    </div>
   </div></section>
 </div>
 
+<script src="js/dsp.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
 <script>
-(() => {
-const $ = id => document.getElementById(id);
-let ctx=null, monIn=null, monNodes=[], analyser=null, meterBuf=null, peakHold=0;
-const blank = () => ({buf:null,st:null,name:'',enc:{},encSt:{},peaks:null,loading:false,err:false});
-const ch = {A:blank(), B:blank()};
-let active='A', playing=false, srcs=[], gains={}, startAt=0, offsetAt=0;
-let loop=true, mode='match', blind=false, blindMap={X:'A',Y:'B'}, raf=0;
-let loopIn=0, loopOut=null, cueMode=false, codec='off', plat='spotify', mon='full', encToken=0;
-
-const PLAT = {
-  spotify:{name:'Spotify',short:'Spotify −14',target:-14,up:true},
-  apple:{name:'Apple Music',short:'Apple −16',target:-16,up:true},
-  youtube:{name:'YouTube',short:'YouTube −14',target:-14,up:false},
-  tidal:{name:'Tidal',short:'Tidal −14',target:-14,up:false},
-  amazon:{name:'Amazon',short:'Amazon −14',target:-14,up:false},
-  sc:{name:'SoundCloud',short:'SoundCloud 0',target:null,up:false}
-};
-
-function ensureCtx(){
-  // iOS 17+: a 'playback' session keeps audio on when the ring/silent switch is set to silent.
-  try{ if(navigator.audioSession&&navigator.audioSession.type!=='playback') navigator.audioSession.type='playback'; }catch(e){}
-  if(!ctx){ ctx=new (window.AudioContext||window.webkitAudioContext)(); monIn=ctx.createGain(); analyser=ctx.createAnalyser(); analyser.fftSize=1024; buildMonitor(); }
-  if(ctx.state==='suspended') ctx.resume();
-  return ctx;
-}
-function bq(type,f,q,g){ const n=ctx.createBiquadFilter(); n.type=type; n.frequency.value=f; n.Q.value=q; if(g!=null) n.gain.value=g; return n; }
-function buildMonitor(){
-  if(!ctx) return;
-  monIn.disconnect(); monNodes.forEach(n=>n.disconnect()); monNodes=[];
-  if(analyser) monIn.connect(analyser);
-  if(mon==='full'){ monIn.connect(ctx.destination); return; }
-  const m=ctx.createGain(); m.channelCount=1; m.channelCountMode='explicit'; m.channelInterpretation='speakers';
-  monIn.connect(m); monNodes.push(m); let last=m;
-  if(mon==='phone') [bq('highpass',350,0.7),bq('highpass',350,0.7),bq('peaking',2500,1,4),bq('lowpass',9000,0.7)]
-    .forEach(n=>{ last.connect(n); last=n; monNodes.push(n); });
-  last.connect(ctx.destination);
-}
-
-// ---------- Measurement (BS.1770-4 / EBU R128) ----------
-function biquad(x,b0,b1,b2,a1,a2){ const y=new Float32Array(x.length); let x1=0,x2=0,y1=0,y2=0;
-  for(let i=0;i<x.length;i++){ const xi=x[i]; const yi=b0*xi+b1*x1+b2*x2-a1*y1-a2*y2; x2=x1;x1=xi;y2=y1;y1=yi;y[i]=yi; } return y; }
-function kWeight(x,fs){
-  let f0=1681.974450955533,G=3.999843853973347,Q=0.7071752369554196;
-  let K=Math.tan(Math.PI*f0/fs),Vh=Math.pow(10,G/20),Vb=Math.pow(Vh,0.4996667741545416),a0=1+K/Q+K*K;
-  const s1=biquad(x,(Vh+Vb*K/Q+K*K)/a0,2*(K*K-Vh)/a0,(Vh-Vb*K/Q+K*K)/a0,2*(K*K-1)/a0,(1-K/Q+K*K)/a0);
-  f0=38.13547087602444;Q=0.5003270373238773;K=Math.tan(Math.PI*f0/fs);a0=1+K/Q+K*K;
-  return biquad(s1,1,-2,1,2*(K*K-1)/a0,(1-K/Q+K*K)/a0);
-}
-const TPC=(()=>{ const c=[]; for(let p=1;p<4;p++){ const t=p/4,row=[]; for(let j=-5;j<=6;j++){ const d=t-j; const s=d===0?1:Math.sin(Math.PI*d)/(Math.PI*d); const w=0.5+0.5*Math.cos(Math.PI*d/6.5); row.push(s*w);} c.push(row);} return c; })();
-function truePeak(d,sp){
-  let tp=sp; const thr=sp*0.5,n=d.length;
-  for(let i=5;i<n-6;i++){
-    const a=Math.abs(d[i]),b=Math.abs(d[i+1]); if(a<thr&&b<thr) continue;
-    for(let p=0;p<3;p++){ const r=TPC[p]; let y=0; for(let j=0;j<12;j++) y+=d[i-5+j]*r[j]; y=Math.abs(y); if(y>tp) tp=y; }
-  }
-  return tp;
-}
-const Lz = z => -0.691+10*Math.log10(z);
-function measure(buf){
-  const fs=buf.sampleRate,n=buf.length,nch=Math.min(buf.numberOfChannels,2);
-  let sp=0,tp=0; const cum=[];
-  for(let c=0;c<nch;c++){
-    const d=buf.getChannelData(c); let p=0; for(let i=0;i<n;i++){const v=Math.abs(d[i]); if(v>p)p=v;}
-    if(p>sp) sp=p; const t=truePeak(d,p); if(t>tp) tp=t;
-    const y=kWeight(d,fs),cs=new Float64Array(n+1); for(let i=0;i<n;i++) cs[i+1]=cs[i]+y[i]*y[i]; cum.push(cs);
-  }
-  const blocks=(len,hop)=>{ const out=[]; for(let s=0;s+len<=n;s+=hop){ let z=0; for(let c=0;c<nch;c++) z+=(cum[c][s+len]-cum[c][s])/len; out.push(z);} return out; };
-  let mz=blocks(Math.round(0.4*fs),Math.round(0.1*fs));
-  if(!mz.length){ let z=0; for(let c=0;c<nch;c++) z+=cum[c][n]/Math.max(n,1); mz=[z]; }
-  const abs=mz.filter(z=>Lz(z)>-70);
-  let lufs=-Infinity;
-  if(abs.length){ const m=abs.reduce((a,b)=>a+b,0)/abs.length; const rel=abs.filter(z=>Lz(z)>Lz(m)-10); lufs=Lz(rel.reduce((a,b)=>a+b,0)/rel.length); }
-  const sz=blocks(Math.round(3*fs),Math.round(0.1*fs));
-  let st=-Infinity; sz.forEach(z=>{ const v=Lz(z); if(v>st) st=v; });
-  let lra=null; const sa=sz.filter(z=>Lz(z)>-70);
-  if(sa.length>1){ const m=sa.reduce((a,b)=>a+b,0)/sa.length; const r=sa.filter(z=>Lz(z)>Lz(m)-20).map(Lz).sort((a,b)=>a-b);
-    if(r.length>1){ const q=f=>r[Math.min(r.length-1,Math.max(0,Math.round(f*(r.length-1))))]; lra=q(0.95)-q(0.10); } }
-  if(!isFinite(st)) st=lufs;
-  return {lufs,sp,tp,st,lra};
-}
-function envelope(buf,cols=1200){
-  const n=buf.length,nch=Math.min(2,buf.numberOfChannels),mn=new Float32Array(cols),mx=new Float32Array(cols);
-  const d0=buf.getChannelData(0),d1=nch>1?buf.getChannelData(1):d0;
-  for(let c=0;c<cols;c++){
-    const s=Math.floor(c*n/cols),e=Math.max(s+1,Math.floor((c+1)*n/cols)); let lo=0,hi=0;
-    for(let i=s;i<e;i++){ const v=(d0[i]+d1[i])*0.5; if(v<lo)lo=v; if(v>hi)hi=v; }
-    mn[c]=lo; mx[c]=hi;
-  }
-  return {mn,mx,cols,dur:buf.duration};
-}
-
-// ---------- Helpers ----------
-const db = v => v>0 ? 20*Math.log10(v) : -Infinity;
-const nf = v => (v<0?'−':'')+Math.abs(v).toFixed(1);
-const sgn = v => (v>0.05?'+':(v<-0.05?'−':''))+Math.abs(v).toFixed(1);
-const fmt = t => { t=Math.max(0,t); const m=Math.floor(t/60),s=Math.floor(t%60); return m+':'+String(s).padStart(2,'0'); };
-const fmt10 = t => { t=Math.max(0,t); const m=Math.floor(t/60),s=(t%60); return m+':'+(s<10?'0':'')+s.toFixed(1); };
-const ready = () => !!(ch.A.st&&ch.B.st);
-const dur = () => Math.max(ch.A.buf?ch.A.buf.duration:0, ch.B.buf?ch.B.buf.duration:0);
-const endPt = () => loopOut==null ? dur() : loopOut;
-const yieldUI = () => new Promise(r=>setTimeout(r,0));
-const stOf = k => (codec!=='off'&&ch[k].encSt[codec]) ? ch[k].encSt[codec] : ch[k].st;
-const playBuf = k => (codec!=='off'&&ch[k].enc[codec]) ? ch[k].enc[codec] : ch[k].buf;
-function setStatus(t,p){ $('status').textContent=t||''; const b=$('bar'); b.hidden=(p==null); if(p!=null) $('barFill').style.width=Math.round(p*100)+'%'; }
-
-function platGainDb(st,p){
-  const P=PLAT[p]; if(!st||!isFinite(st.lufs)||P.target==null) return 0;
-  const d=P.target-st.lufs; if(d<=0) return d; if(!P.up) return 0;
-  return Math.max(0,Math.min(d,-1-db(st.tp)));
-}
-function gainsDb(){
-  if(!ready()||mode==='orig') return {A:0,B:0};
-  if(mode==='plat') return {A:platGainDb(stOf('A'),plat),B:platGainDb(stOf('B'),plat)};
-  const a=ch.A.st.lufs,b=ch.B.st.lufs; if(!isFinite(a)||!isFinite(b)) return {A:0,B:0};
-  const t=Math.min(a,b); return {A:t-a,B:t-b};
-}
-// ---------- 7-segment LED digits (inline SVG, unlit segments ghosted) ----------
-const SEG=(()=>{ const t=1, L=2, Rr=10, T=2, M=10, B=18;
-  const h=(x1,x2,y)=>`${x1},${y} ${x1+t},${y-t} ${x2-t},${y-t} ${x2},${y} ${x2-t},${y+t} ${x1+t},${y+t}`;
-  const v=(x,y1,y2)=>`${x},${y1} ${x+t},${y1+t} ${x+t},${y2-t} ${x},${y2} ${x-t},${y2-t} ${x-t},${y1+t}`;
-  return {a:h(L+.6,Rr-.6,T),b:v(Rr,T+.6,M-.6),c:v(Rr,M+.6,B-.6),d:h(L+.6,Rr-.6,B),e:v(L,M+.6,B-.6),f:v(L,T+.6,M-.6),g:h(L+.6,Rr-.6,M),p:v(6,M-3.6,M+3.6)}; })();
-const DIG={'0':'abcdef','1':'bc','2':'abged','3':'abgcd','4':'fgbc','5':'afgcd','6':'afgedc','7':'abc','8':'abcdefg','9':'abcfgd','-':'g','+':'gp',' ':''};
-function seg7(str,cells){
-  str=String(str).replace(/−/g,'-');
-  const cs=[]; for(const ch of str){ if(ch==='.'&&cs.length){ cs[cs.length-1].dot=true; continue; } cs.push({ch,dot:false}); }
-  if(cells){ let n=cs.filter(c=>c.ch!==':').length; while(n<cells){ cs.unshift({ch:' ',dot:false}); n++; } }
-  let x=0, body='';
-  for(const c of cs){
-    if(c.ch===':'){ body+=`<g transform="translate(${x},0)"><circle class="on" cx="2.5" cy="7" r="1.2"/><circle class="on" cx="2.5" cy="14" r="1.2"/></g>`; x+=5; continue; }
-    const lit=DIG[c.ch]||'';
-    let g=''; for(const k of 'abcdefg') g+=`<polygon class="${lit.includes(k)?'on':'off'}" points="${SEG[k]}"/>`;
-    if(lit.includes('p')) g+=`<polygon class="on" points="${SEG.p}"/>`;
-    g+=`<circle class="${c.dot?'on':'off'}" cx="12.4" cy="18.2" r="1.1"/>`;
-    body+=`<g transform="translate(${x},0) skewX(-7)">${g}</g>`; x+=14;
-  }
-  return `<svg class="seg" viewBox="-1 0 ${x+2} 20" style="width:${(x+2)/20}em" aria-label="${str.trim()}" role="img">${body}</svg>`;
-}
-const sideKey = s => blind ? (s==='A'?blindMap.X:blindMap.Y) : s;
-
-// ---------- Rendered knob (61-frame filmstrip, -150 to +150 degrees) ----------
-function Knob(el,{label,options,value,onChange}){
-  const n=options.length, span=n<=3?60:(n<=5?120:135);
-  const angleOf=i=> n===1?0:-span+i*(2*span/(n-1));
-  const frameOf=a=> Math.round((a+150)/5);
-  el.innerHTML='<div class="dial" role="slider" tabindex="0" aria-label="'+label+'"><div class="img"></div></div><div class="glass amber"><b class="val"></b></div><span class="lbl">'+label+'</span>';
-  const dial=el.querySelector('.dial'), img=el.querySelector('.img'), val=el.querySelector('.val');
-  const ticks=options.map((o,i)=>{ const t=document.createElement('span'); t.className='tick';
-    const a=angleOf(i)*Math.PI/180, R=50; t.style.transform='translate('+(Math.sin(a)*R)+'px,'+(-Math.cos(a)*R)+'px) rotate('+angleOf(i)+'deg)'; dial.appendChild(t); return t; });
-  let idx=Math.max(0,options.findIndex(o=>o.v===value));
-  const show=()=>{ const f=frameOf(angleOf(idx)); img.style.backgroundPosition='0 '+(f/60*100)+'%';
-    ticks.forEach((t,i)=>t.classList.toggle('on',i===idx)); val.textContent=options[idx].t;
-    dial.setAttribute('aria-valuetext',options[idx].t); dial.setAttribute('aria-valuenow',idx); dial.setAttribute('aria-valuemin',0); dial.setAttribute('aria-valuemax',n-1); };
-  const set=(i,fire=true)=>{ i=Math.max(0,Math.min(n-1,i)); if(i===idx) return; idx=i; show(); if(fire) onChange(options[idx].v); };
-  let drag=null;
-  dial.addEventListener('pointerdown',e=>{ dial.setPointerCapture(e.pointerId); drag={y:e.clientY,x:e.clientX,i:idx,moved:false}; });
-  dial.addEventListener('pointermove',e=>{ if(!drag) return; const d=(drag.y-e.clientY)+(e.clientX-drag.x);
-    if(Math.abs(d)>6) drag.moved=true; if(drag.moved) set(drag.i+Math.round(d/28)); });
-  dial.addEventListener('pointerup',()=>{ if(drag&&!drag.moved) set(idx===n-1?0:idx+1); drag=null; });
-  dial.addEventListener('pointercancel',()=>{ drag=null; });
-  dial.addEventListener('keydown',e=>{ if(['ArrowUp','ArrowRight'].includes(e.key)){ e.preventDefault(); set(idx+1); } if(['ArrowDown','ArrowLeft'].includes(e.key)){ e.preventDefault(); set(idx-1); } });
-  show();
-  return {set:v=>{ const i=options.findIndex(o=>o.v===v); if(i>=0){ idx=i; show(); } }};
-}
-
-// ---------- Scope ----------
-const cv=$('cv'), g2=cv.getContext('2d');
-const C={grid:'rgba(125,255,162,.08)',rule:'rgba(125,255,162,.2)',dim:'rgba(125,255,162,.55)',ink:'#7DFFA2',ch1:'#FF6A1A',ch2:'#7FB4EA',amber:'#FFB347'};
-function sizeCanvas(){ const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1; cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); draw(); }
-function draw(){
-  const W=cv.width,H=cv.height,dpr=window.devicePixelRatio||1; if(!W) return;
-  g2.clearRect(0,0,W,H);
-  const D=dur(), r=ready();
-  $('scopeEmpty').hidden=!!(ch.A.peaks||ch.B.peaks);
-  g2.lineWidth=1; g2.strokeStyle=C.grid;
-  for(let i=1;i<10;i++){ const x=Math.round(W*i/10)+.5; g2.beginPath(); g2.moveTo(x,0); g2.lineTo(x,H); g2.stroke(); }
-  const lanes=blind?[{c:0.5,h:H*0.46}]:[{c:0.25,h:H*0.23},{c:0.75,h:H*0.23}];
-  lanes.forEach(L=>{ const y=Math.round(H*L.c)+.5; g2.strokeStyle=C.rule; g2.beginPath(); g2.moveTo(0,y); g2.lineTo(W,y); g2.stroke();
-    g2.strokeStyle=C.grid; g2.setLineDash([2*dpr,3*dpr]); [0.5,-0.5].forEach(a=>{ const yy=Math.round(H*L.c-a*L.h)+.5; g2.beginPath(); g2.moveTo(0,yy); g2.lineTo(W,yy); g2.stroke(); }); g2.setLineDash([]); });
-  if(!D) return;
-  if(loopIn>0||loopOut!=null){ const x0=loopIn/D*W,x1=endPt()/D*W; g2.fillStyle=C.amber; g2.globalAlpha=0.08; g2.fillRect(x0,0,x1-x0,H); g2.globalAlpha=1;
-    g2.strokeStyle=C.amber; g2.lineWidth=dpr; [x0,x1].forEach(x=>{ g2.beginPath(); g2.moveTo(x,0); g2.lineTo(x,H); g2.stroke(); }); }
-  const gd=gainsDb();
-  const drawEnv=(k,L,col,alpha,glow)=>{
-    const p=ch[k].peaks; if(!p) return;
-    const gl=Math.pow(10,(gd[k]||0)/20),wpx=p.dur/D*W,cy=H*L.c,lim=L.h*2.15;
-    g2.fillStyle=col; g2.globalAlpha=alpha; if(glow){ g2.shadowColor=col; g2.shadowBlur=10*dpr; }
-    for(let x=0;x<wpx;x++){ const c=Math.min(p.cols-1,Math.floor(x/wpx*p.cols));
-      const top=Math.max(cy-lim,cy-p.mx[c]*gl*L.h*2), bot=Math.min(cy+lim,cy-p.mn[c]*gl*L.h*2);
-      g2.fillRect(x,top,1,Math.max(1,bot-top)); }
-    g2.globalAlpha=1; g2.shadowBlur=0;
-  };
-  if(blind){ drawEnv('A',lanes[0],C.ink,0.35); drawEnv('B',lanes[0],C.ink,0.35); }
-  else { drawEnv('A',lanes[0],C.ch1,(!r||active==='A')?0.95:0.25,r&&active==='A'); drawEnv('B',lanes[1],C.ch2,(!r||active==='B')?0.95:0.25,r&&active==='B'); }
-  g2.fillStyle=C.dim; g2.font='700 '+(11*dpr)+'px "Doto", "VT323", monospace'; g2.textBaseline='top';
-  if(!blind){ g2.fillText('A',4*dpr,4*dpr); g2.fillText('B',4*dpr,H/2+4*dpr); }
-  g2.textBaseline='bottom'; for(let i=1;i<10;i+=2){ g2.fillText(fmt(D*i/10),W*i/10+3*dpr,H-3*dpr); }
-  const x=Math.round(Math.min(now(),D)/D*W)+.5;
-  g2.strokeStyle=C.amber; g2.lineWidth=2*dpr; g2.shadowColor=C.amber; g2.shadowBlur=8*dpr;
-  g2.beginPath(); g2.moveTo(x,0); g2.lineTo(x,H); g2.stroke(); g2.shadowBlur=0;
-}
-let ptr=null;
-cv.addEventListener('pointerdown',e=>{ if(!dur()) return; cv.setPointerCapture(e.pointerId); const r=cv.getBoundingClientRect(); ptr={x0:e.clientX-r.left,w:r.width,drag:false,x:e.clientX-r.left}; });
-cv.addEventListener('pointermove',e=>{ if(!ptr) return; const r=cv.getBoundingClientRect(); ptr.x=e.clientX-r.left;
-  if(Math.abs(ptr.x-ptr.x0)>8) ptr.drag=true;
-  if(ptr.drag){ const D=dur(),a=Math.max(0,Math.min(ptr.x0,ptr.x))/ptr.w*D,b=Math.min(ptr.w,Math.max(ptr.x0,ptr.x))/ptr.w*D; loopIn=a; loopOut=Math.max(a+0.25,b); render(); } });
-cv.addEventListener('pointerup',()=>{ if(!ptr) return; const D=dur(),t=Math.max(0,Math.min(1,ptr.x/ptr.w))*D;
-  if(ptr.drag){ if(playing) start(loopIn); else offsetAt=loopIn; }
-  else { if(t<loopIn||t>=endPt()){ loopIn=0; loopOut=null; } if(playing) start(t); else offsetAt=t; }
-  ptr=null; render(); });
-cv.addEventListener('pointercancel',()=>{ ptr=null; });
-
-// ---------- OUT LED ladder ----------
-const meterEl=$('meter'), MSEG=24;
-for(let i=0;i<MSEG;i++){ const s=document.createElement('i'); s.style.setProperty('--c', i<15?'var(--ok)':(i<20?'var(--warn)':'var(--alert)')); meterEl.appendChild(s); }
-const msegs=[...meterEl.children];
-function updateMeter(reset){
-  let lit=0;
-  if(!reset&&analyser&&playing){
-    if(!meterBuf) meterBuf=new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(meterBuf); let pk=0; for(let i=0;i<meterBuf.length;i++){ const v=Math.abs(meterBuf[i]); if(v>pk) pk=v; }
-    const d=pk>0?20*Math.log10(pk):-99; lit=Math.max(0,Math.min(MSEG,Math.round((d+48)/48*MSEG)));
-    peakHold=Math.max(lit,peakHold-0.25);
-  } else peakHold=0;
-  const hold=Math.round(peakHold);
-  msegs.forEach((s,i)=>{ s.classList.toggle('on',i<lit); s.classList.toggle('pk',hold>0&&i===hold-1); });
-}
-
-// ---------- Render ----------
-function render(){
-  const r=ready(), g=gainsDb();
-  for(const k of ['A','B']){
-    const c=ch[k];
-    $('name'+k).textContent = blind&&r ? 'Hidden for blind test' : (c.err?'Could not decode. Try WAV or MP3.':(c.name||'No file loaded'));
-    $('meta'+k).textContent = c.loading ? 'Measuring…' : (c.buf&&!(blind&&r) ? (c.buf.sampleRate/1000)+' kHz · '+c.buf.numberOfChannels+' ch · '+fmt(c.buf.duration) : (k==='A'?'Channel A · Blade':'Channel B · Body'));
-    const b=$('sel'+k), on=r&&active===sideKey(k);
-    b.disabled=!r; b.dataset.on=on?'1':'0'; b.classList.toggle('blind',blind);
-    $('big'+k).textContent = blind?(k==='A'?'X':'Y'):k;
-    $('g'+k).textContent = r&&!blind ? sgn(g[sideKey(k)])+' dB' : '';
-    $('st'+k).textContent = on?'On':(blind?'Tap':(k==='A'?'Blade':'Body'));
-  }
-  $('play').disabled=!r; $('play').setAttribute('aria-pressed',playing); $('playLbl').textContent=playing?'Pause':'Play';
-  $('loop').setAttribute('aria-pressed',loop); $('cue').setAttribute('aria-pressed',cueMode); $('blind').setAttribute('aria-pressed',blind);
-  const hasRegion=r&&(loopIn>0||loopOut!=null);
-  $('clrLoop').hidden=!hasRegion;
-  $('loopInfo').textContent = hasRegion ? 'Loop '+fmt10(loopIn)+' to '+fmt10(endPt()) : 'Tap to seek · drag to loop';
-  $('scopeAside').textContent = blind ? 'Blind: overlaid' : 'At playback gain';
-  $('live').classList.toggle('on',playing); if(!playing) updateMeter(true);
-  updateClock(); renderReadouts(); renderReport(); draw();
-}
-function updateClock(){ const D=dur(); $('clock').innerHTML=seg7(fmt10(Math.min(now(),D)),4); $('dur').textContent=fmt(D); }
-function renderReadouts(){
-  const tb=$('ro'), sa=ch.A.st?stOf('A'):null, sb=ch.B.st?stOf('B'):null;
-  $('roAside').textContent = codec!=='off' ? 'After MP3 '+codec+' kbps' : 'Source files';
-  if(blind&&ready()){ tb.innerHTML='<tr><td class="m" colspan="5">Hidden during blind test.</td></tr>'; return; }
-  const g=gainsDb();
-  const rows=[['Integrated',s=>s.lufs,'LUFS',false],['True peak',s=>db(s.tp),'dBTP',true],['Short-term max',s=>s.st,'LUFS',false],['Loudness range',s=>s.lra,'LU',false],['Peak to loudness',s=>db(s.tp)-s.lufs,'dB',false]];
-  const blankLed='<td class="v">'+seg7('',4)+'</td>';
-  const cell=(s,f,hot)=>{ if(!s) return blankLed; const v=f(s); if(v==null||!isFinite(v)) return '<td class="v">'+seg7('----',4)+'</td>';
-    return '<td class="v'+(hot&&v>-1?' hot':'')+'">'+seg7(nf(v),4)+'</td>'; };
-  let html=rows.map(([m,f,u,hot])=>{ const va=sa?f(sa):null,vb=sb?f(sb):null,d=(va!=null&&vb!=null&&isFinite(va)&&isFinite(vb))?sgn(vb-va):'';
-    return '<tr><td class="m">'+m+'</td>'+cell(sa,f,hot)+cell(sb,f,hot)+'<td class="d">'+d+'</td><td class="u">'+u+'</td></tr>'; }).join('');
-  const gv=k=>ready()?'<td class="v">'+seg7(sgn(g[k]),4)+'</td>':blankLed;
-  tb.innerHTML=html+'<tr><td class="m">Gain now</td>'+gv('A')+gv('B')+'<td class="d"></td><td class="u">dB</td></tr>';
-}
-function renderReport(){
-  const tb=$('report');
-  if(!ready()){ tb.innerHTML='<tr><td class="m" colspan="4">Needs both files.</td></tr>'; return; }
-  if(blind){ tb.innerHTML='<tr><td class="m" colspan="4">Hidden during blind test.</td></tr>'; return; }
-  const sa=stOf('A'),sb=stOf('B');
-  tb.innerHTML=Object.keys(PLAT).map(p=>{
-    const ga=platGainDb(sa,p),gb=platGainDb(sb,p),pa=sa.lufs+ga,pb=sb.lufs+gb,diff=Math.abs(pa-pb);
-    const louder=diff<0.3?'Even':(pa>pb?'A':'B')+' +'+diff.toFixed(1);
-    const cls=v=>v<-0.05?' hot':(v>0.05?' ok':'');
-    return '<tr class="'+(mode==='plat'&&p===plat?'sel':'')+'"><td class="m">'+PLAT[p].name+'</td><td class="v'+cls(ga)+'">'+seg7(sgn(ga),4)+'</td><td class="v'+cls(gb)+'">'+seg7(sgn(gb),4)+'</td><td class="d">'+louder+'</td></tr>';
-  }).join('');
-}
-
-// ---------- Loading ----------
-function decode(ab){ return new Promise((res,rej)=>{ const p=ctx.decodeAudioData(ab,res,rej); if(p&&p.then) p.then(res,rej); }); }
-async function setBuffer(k,buf,name){
-  ch[k]=blank(); ch[k].name=name; ch[k].buf=buf; ch[k].loading=true; ch[k].peaks=envelope(buf); render();
-  await yieldUI(); ch[k].st=measure(buf); ch[k].loading=false;
-  if(codec!=='off') await ensureEncoded();
-  render();
-}
-async function loadFile(k,file){
-  if(!file) return; ensureCtx(); stop(true); encToken++;
-  ch[k]=blank(); ch[k].name=file.name; ch[k].loading=true; render();
-  try{ const buf=await decode(await file.arrayBuffer()); offsetAt=0; loopIn=0; loopOut=null; await setBuffer(k,buf,file.name); }
-  catch(e){ ch[k]=blank(); ch[k].err=true; render(); }
-}
-$('fileA').addEventListener('change',e=>loadFile('A',e.target.files[0]));
-$('fileB').addEventListener('change',e=>loadFile('B',e.target.files[0]));
-
-function makeDemo(){
-  const fs=44100,len=Math.round(fs*12.8),L0=new Float32Array(len),R0=new Float32Array(len);
-  let seed=7; const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff*2-1; };
-  const beat=0.5;
-  for(let i=0;i<len;i++){
-    const t=i/fs,bt=t%beat,bar=t%(beat*4),b=Math.floor(t/beat)%4,phr=Math.floor(t/(beat*8));
-    const kick=Math.sin(2*Math.PI*(45+90*Math.exp(-bt*30))*bt)*Math.exp(-bt*7)*0.9;
-    const sn=(b===1||b===3)?rnd()*Math.exp(-bt*18)*0.45+Math.sin(2*Math.PI*190*bt)*Math.exp(-bt*25)*0.25:0;
-    const ht=t%(beat/2),hat=rnd()*Math.exp(-ht*60)*0.12;
-    const notes=bar<beat*2?[220,261.63,329.63]:[196,246.94,293.66];
-    let pad=0; notes.forEach((f,j)=>{ pad+=((t*f*(1+0.002*j))%1*2-1); }); pad*=phr%2?0.09:0.04;
-    const w=0.25*Math.sin(2*Math.PI*0.3*t);
-    L0[i]=kick+sn+hat*(1+w)+pad*(1-w); R0[i]=kick+sn+hat*(1-w)+pad*(1+w);
-  }
-  const A=ctx.createBuffer(2,len,fs),B=ctx.createBuffer(2,len,fs);
-  let pk=0; for(let i=0;i<len;i++) pk=Math.max(pk,Math.abs(L0[i]),Math.abs(R0[i]));
-  const ga=0.5/pk,a0=A.getChannelData(0),a1=A.getChannelData(1),b0=B.getChannelData(0),b1=B.getChannelData(1);
-  for(let i=0;i<len;i++){ a0[i]=L0[i]*ga; a1[i]=R0[i]*ga; b0[i]=Math.tanh(L0[i]*ga*4)*0.97; b1[i]=Math.tanh(R0[i]*ga*4)*0.97; }
-  return {A,B};
-}
-$('demo').addEventListener('click',async()=>{
-  ensureCtx(); stop(true); encToken++; offsetAt=0; loopIn=0; loopOut=null;
-  setStatus('Building demo…'); await yieldUI();
-  const d=makeDemo();
-  await setBuffer('A',d.A,'Demo · dynamic mix');
-  await setBuffer('B',d.B,'Demo · clipped master');
-  setStatus(''); render();
-});
-
-// ---------- MP3 codec preview ----------
-async function resample(buf,rate){ const oc=new OfflineAudioContext(Math.min(2,buf.numberOfChannels),Math.ceil(buf.duration*rate),rate);
-  const s=oc.createBufferSource(); s.buffer=buf; s.connect(oc.destination); s.start(); return oc.startRendering(); }
-function toI16(f){ const o=new Int16Array(f.length); for(let i=0;i<f.length;i++){ let v=f[i]; v=v>1?1:(v<-1?-1:v); o[i]=v<0?v*0x8000:v*0x7fff; } return o; }
-async function encodeMp3(buf,kbps,onProg,token){
-  let src=buf; if(![32000,44100,48000].includes(buf.sampleRate)) src=await resample(buf,44100);
-  const nch=Math.min(2,src.numberOfChannels),enc=new lamejs.Mp3Encoder(nch,src.sampleRate,kbps);
-  const l=toI16(src.getChannelData(0)),r=nch>1?toI16(src.getChannelData(1)):null;
-  const out=[],step=1152*16;
-  for(let i=0,n=0;i<l.length;i+=step,n++){
-    const d=r?enc.encodeBuffer(l.subarray(i,i+step),r.subarray(i,i+step)):enc.encodeBuffer(l.subarray(i,i+step));
-    if(d.length) out.push(new Uint8Array(d));
-    if(n%24===0){ onProg(i/l.length); await yieldUI(); if(token!==encToken) throw new Error('cancelled'); }
-  }
-  const f=enc.flush(); if(f.length) out.push(new Uint8Array(f));
-  return decode(await new Blob(out,{type:'audio/mpeg'}).arrayBuffer());
-}
-async function ensureEncoded(){
-  if(codec==='off') return true;
-  if(typeof lamejs==='undefined'){ setStatus('The MP3 encoder did not load, so codec preview is off.'); codec='off'; kCodec.set('off'); return false; }
-  const token=encToken,kb=+codec;
-  for(const k of ['A','B']){
-    if(!ch[k].buf||ch[k].enc[codec]) continue;
-    const e=await encodeMp3(ch[k].buf,kb,p=>setStatus('Encoding '+k+' to MP3 '+kb+' kbps',p),token);
-    if(token!==encToken) return false;
-    ch[k].enc[codec]=e; setStatus('Measuring '+k+' after encoding',1); await yieldUI(); ch[k].encSt[codec]=measure(e);
-  }
-  setStatus(''); return true;
-}
-async function setCodec(v){
-  const t=playing?now():offsetAt,was=playing;
-  encToken++; codec=v;
-  if(v!=='off'){ stop(true); render(); try{ await ensureEncoded(); }catch(err){ return; } }
-  setStatus(codec==='off'?'':'Hearing MP3 '+codec+' kbps on both sides.');
-  if(was&&ready()) start(t); else { offsetAt=t; render(); }
-}
-
-// ---------- Playback ----------
-function now(){ return playing?offsetAt+(ctx.currentTime-startAt):offsetAt; }
-function applyGains(ramp){
-  const g=gainsDb(),t=ctx.currentTime;
-  for(const k of ['A','B']) if(gains[k]){
-    const v=k===active?Math.pow(10,g[k]/20):0;
-    gains[k].gain.cancelScheduledValues(t);
-    if(ramp) gains[k].gain.setTargetAtTime(v,t,0.004); else gains[k].gain.setValueAtTime(v,t);
-  }
-}
-function start(at){
-  ensureCtx(); stop(true);
-  const E=endPt(); if(at>=E||at<0) at=loopIn;
-  offsetAt=at; startAt=ctx.currentTime+0.05;
-  for(const k of ['A','B']){
-    const b=playBuf(k); if(!b) continue;
-    const s=ctx.createBufferSource(); s.buffer=b;
-    const g=ctx.createGain(); s.connect(g).connect(monIn); gains[k]=g;
-    if(at<b.duration) s.start(startAt,at);
-    srcs.push(s);
-  }
-  playing=true; applyGains(false); tick(); render();
-}
-function stop(keep){
-  if(playing&&ctx) offsetAt=now();
-  srcs.forEach(s=>{try{s.stop()}catch(e){}}); srcs=[]; gains={};
-  playing=false; cancelAnimationFrame(raf);
-  if(!keep) render();
-}
-function tick(){
-  const t=now(),E=endPt();
-  if(t>=E){ if(loop){ start(loopIn); return; } stop(); offsetAt=loopIn; render(); return; }
-  updateClock(); draw(); updateMeter();
-  if(playing) raf=requestAnimationFrame(tick);
-}
-function select(k){
-  if(!ready()) return; ensureCtx();
-  const changed=k!==active; active=k;
-  if(!playing) start(cueMode?loopIn:offsetAt);
-  else if(cueMode) start(loopIn);
-  else if(changed) applyGains(true);
-  render();
-}
-$('selA').addEventListener('click',()=>select(sideKey('A')));
-$('selB').addEventListener('click',()=>select(sideKey('B')));
-$('play').addEventListener('click',()=>{ playing?stop():start(offsetAt); });
-$('loop').addEventListener('click',()=>{ loop=!loop; render(); });
-$('cue').addEventListener('click',()=>{ cueMode=!cueMode; render(); });
-$('blind').addEventListener('click',()=>{
-  const r=$('revealWin');
-  if(!blind){ blindMap=Math.random()<0.5?{X:'A',Y:'B'}:{X:'B',Y:'A'}; blind=true; r.hidden=true; }
-  else { blind=false; if(ready()){ r.hidden=false; $('reveal').textContent='Reveal: X was '+blindMap.X+', Y was '+blindMap.Y+'.'; } }
-  if(playing) applyGains(true); render();
-});
-$('clrLoop').addEventListener('click',()=>{ loopIn=0; loopOut=null; render(); });
-document.addEventListener('keydown',e=>{
-  const tag=e.target.tagName; if(tag==='SELECT'||(tag==='INPUT'&&e.target.type!=='file')||e.target.getAttribute('role')==='slider') return;
-  if(e.code==='Space'){ e.preventDefault(); if(ready()) select(active==='A'?'B':'A'); }
-});
-
-// ---------- Knobs ----------
-Knob($('kVol'),{label:'Volume',value:'match',options:[{v:'orig',t:'Original'},{v:'match',t:'Matched'},{v:'plat',t:'Platform'}],
-  onChange:v=>{ mode=v; if(playing) applyGains(true); render(); }});
-Knob($('kPlat'),{label:'Platform',value:'spotify',options:Object.keys(PLAT).map(k=>({v:k,t:PLAT[k].short})),
-  onChange:v=>{ plat=v; if(playing) applyGains(true); render(); }});
-const kCodec=Knob($('kCodec'),{label:'Codec',value:'off',options:[{v:'off',t:'Lossless'},{v:'320',t:'MP3 320'},{v:'192',t:'MP3 192'},{v:'128',t:'MP3 128'},{v:'96',t:'MP3 96'}],
-  onChange:v=>setCodec(v)});
-Knob($('kSpk'),{label:'Speaker',value:'full',options:[{v:'full',t:'Full range'},{v:'mono',t:'Mono'},{v:'phone',t:'Phone'}],
-  onChange:v=>{ mon=v; ensureCtx(); buildMonitor(); }});
-
-window.addEventListener('resize',sizeCanvas);
-sizeCanvas(); render();
-})();
-</script>
-<script>
-try{ if('serviceWorker' in navigator && window.isSecureContext && /^https?:$/.test(location.protocol) && window.top===window) navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
+try{ if('serviceWorker' in navigator && window.isSecureContext && /^https?:$/.test(location.protocol) && window.top===window){
+  const had=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+  // an update installed: switch to it once, right away, instead of on the next launch
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(had && !window.__swReloaded){ window.__swReloaded=1; location.reload(); } });
+} }catch(e){}
 </script>
 
 </body>
