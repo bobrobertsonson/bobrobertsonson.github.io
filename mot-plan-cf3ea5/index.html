@@ -124,7 +124,6 @@ const BGS = ["Water", "Wind bars / clouds", "Water into clouds", "Fog", "Blackou
 const BG_LABEL = { "Wind bars / clouds": "Clouds" };
 const BG_NOTES = { "Water into clouds": "Water at the bottom, clouds at the top.", "Blackout with clouds": "Solid black with clouds layered over it." };
 const COLORS = ["Black and grey", "Black, red(s) and grey", "Full color", "Let Tim decide"];
-const SUBJECT_CHIPS = ["Panther", "Koi", "Eagle", "Dragon", "Tiger", "Snake", "Roses", "Peonies", "Dagger", "Swallow", "Skull", "Lady head"];
 // for reading the open chat: [name, pattern]
 const SUBJECTS = [["koi", /\bkoi\b/], ["dragon", /\bdragons?\b/], ["tiger", /\btigers?\b/], ["snake", /\bsnakes?\b/], ["hannya", /\bhannya\b/], ["phoenix", /\bphoenix\b/], ["panther", /\bpanthers?\b/], ["eagle", /\beagles?\b/], ["wolf", /\bwol(f|ves)\b/], ["swallow", /\bswallows?\b/], ["ship", /\bships?\b/], ["lady head", /\blady ?head|pin.?up\b/], ["dagger", /\bdaggers?\b/], ["owl", /\bowls?\b/], ["moth", /\bmoths?\b/], ["butterfly", /\bbutterfl(y|ies)\b/], ["skull", /\bskulls?\b/], ["crane", /\bcranes?\b/], ["roses", /\broses?\b/], ["peonies", /\bpeon(y|ies)\b/], ["cherry blossoms", /\bcherry blossoms?\b|\bsakura\b/], ["chrysanthemums", /\bchrysanthemums?\b/], ["lotus", /\blotus/], ["heart", /\bhearts?\b/]];
 
@@ -201,9 +200,9 @@ const looksLikeChat = t => t.length > 300 || /^(you said|you|me|user|chatgpt|ass
 function sketch(change) { if (S.sketches >= MAX_IMAGES) return false; S.sketches++; S.log.push({ r: "img", n: S.sketches, line: sketchLine() + (change ? ` / ${change}` : ""), prompt: imagePrompt(change) }); return true; }
 function startRiff() {
   if (S.log.length) return;
-  S.log.push({ r: "ai", t: "Here's a first sketch from what you picked. It's just for you to think with. It's not your tattoo and Tim never sees it." });
+  S.log.push({ r: "ai", t: "Here's a rough sketch from what you picked. It's just for you to see your idea. It's not your tattoo and Tim never sees it." });
   sketch("");
-  S.log.push({ r: "ai", t: "Anything else? Edit it from here as much as you want. Been working on it in ChatGPT? Paste that conversation in too. When you're happy, hit Wrap it up for Tim." });
+  S.log.push({ r: "ai", t: "Anything else? If you've been working on this in ChatGPT, you can paste that conversation here. When you're done, hit Wrap it up for Tim." });
 }
 function send(text) {
   text = text.trim(); if (!text || S.busy) return;
@@ -332,11 +331,10 @@ function ideaCard() {
 function stepView() {
   const f = S.f;
   switch (S.step) {
-    case 0: return `<h1>What's it of?</h1><p class="body small">The one thing you care about most is your main subject. Everything else is secondary.</p>
-      <span class="label">Main subject</span><div class="pair">${f.main.map((v, i) => `<input data-k="main.${i}" value="${esc(v)}" placeholder="${i ? "Second main subject (optional)" : "e.g. panther"}" aria-label="Main subject ${i + 1}">`).join("")}</div>
-      <span class="label">Secondary <span class="opt">optional</span></span><div class="pair">${f.sec.map((v, i) => `<input data-k="sec.${i}" value="${esc(v)}" placeholder="${i ? "Another (optional)" : "e.g. roses"}" aria-label="Secondary subject ${i + 1}">`).join("")}</div>
-      <span class="label">Or tap to add</span>
-      <div class="chips">${SUBJECT_CHIPS.map(s => { const on = [...f.main, ...f.sec].some(x => x.trim().toLowerCase() === s.toLowerCase()); return `<button class="chip ${on ? "on" : ""}" data-subj="${s}">${s}</button>`; }).join("")}</div>`;
+    case 0: return `<h1>What's it of?</h1><p class="body small">In your own words. The one thing you care about most is your main subject. Anything else that goes with it is secondary.</p>
+      <span class="label">Main subject</span><div class="pair">${f.main.map((v, i) => `<input data-k="main.${i}" value="${esc(v)}" placeholder="${i ? "Second main subject (optional)" : "Main subject"}" aria-label="Main subject ${i + 1}">`).join("")}</div>
+      <span class="label">Secondary <span class="opt">optional</span></span><div class="pair">${f.sec.map((v, i) => `<input data-k="sec.${i}" value="${esc(v)}" placeholder="${i ? "Another (optional)" : "Secondary subject"}" aria-label="Secondary subject ${i + 1}">`).join("")}</div>
+`;
     case 1: return `<h1>How big, and where?</h1><p class="body small">Pick the size, then the spot. The body map shows where it sits.</p>
       <div class="sizes">${SIZES.map(([s, d]) => `<button class="size ${f.size === s ? "on" : ""}" data-size="${s}">${s}<small>${d}</small></button>`).join("")}</div>
       ${f.size ? `<div class="spaceGrid" style="margin-top:16px"><div>
@@ -353,8 +351,8 @@ function stepView() {
         ? `<figure class="imgcard">${concept(m.n, m.line)}<details><summary>Test mode: image prompt</summary><textarea rows="6" readonly>${esc(m.prompt)}</textarea><button class="link" data-copy="${i}">Copy prompt</button></details></figure>`
         : m.r === "saved" ? `<div class="saved">${esc(m.t)}</div>` : `<div class="msg ${m.r}">${esc(m.t)}</div>`).join("")}
         ${S.busy ? `<div class="msg ai dim">...</div>` : ""}<div id="end"></div></div>
-      <form class="composer" id="cf"><textarea id="in" rows="2" placeholder="Say anything, or paste a ChatGPT conversation" aria-label="Message"></textarea><button class="btn" ${S.busy ? "disabled" : ""}>Send</button></form>
-      <p class="note">${S.sketches}/${MAX_IMAGES} sketches. They stay with you. What you say goes to Tim.</p>`;
+      <form class="composer" id="cf"><textarea id="in" rows="2" placeholder="Anything else, or paste a ChatGPT conversation" aria-label="Message"></textarea><button class="btn" ${S.busy ? "disabled" : ""}>Send</button></form>
+      <p class="note">Sketches stay with you. What you say goes to Tim.</p>`;
     case 5: return `<h1>Wrap it up for Tim</h1>
       <p class="body small">Everything you worked out, boiled down. The sketches stay with you.</p>
       <span class="label">You</span><div class="pair"><input data-k="name" value="${esc(f.name)}" placeholder="Your name" aria-label="Your name"><input data-k="contact" value="${esc(f.contact)}" placeholder="Instagram or email" aria-label="Instagram or email"></div>
@@ -377,7 +375,7 @@ function render() {
     app.innerHTML = `<main class="wrap narrow"><p class="eyebrow">Plan your tattoo</p><h1>Plan it here. I'll draw it.</h1>
       <p class="body">A lot of people use AI to work out their tattoo ideas now. That's cool with me. It's a good way to figure out what you actually want.</p>
       <p class="body">But I don't tattoo AI images. You came to me for a piece drawn for you and your body, and that's what you'll get.</p>
-      <p class="body">So pick the basics, then play with AI sketches as much as you want, or paste in what you worked out in ChatGPT. Every decision you make comes straight to me. The sketches stay with you. I take what you figured out and draw yours from scratch.</p>
+      <p class="body">So tell me the basics here, see a rough AI sketch of your idea, and add anything else you want me to know. Already worked it out in ChatGPT? Paste that in. Everything you tell me comes straight to me. The sketches stay with you. I take your idea and draw it from scratch.</p>
       <p class="body small">Rather just talk it out? DM <a href="https://instagram.com/${IG}">@${IG}</a>.</p>
       <button class="btn" data-a="go">I'm 18 or older. Let's go</button></main>`;
     return;
