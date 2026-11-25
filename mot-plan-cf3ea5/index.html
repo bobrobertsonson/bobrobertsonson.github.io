@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Plan your tattoo (prototype)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,700&family=Inter:wght@400;600&family=Newsreader:opsz,wght@6..72,400&display=swap">
+<style>
+/* VOICE: Tim's site, dark and blunt. IDEA: riff on a tattoo idea with AI like you would in ChatGPT, while a panel quietly builds what Tim actually gets.
+   PICTURE: the chat with inline concept images, beside the "What Tim gets" card (body map + the four essentials).
+   COLOUR: ink, bone, red #C13B2E, paper card. TYPE: Archivo condensed (stand-in for Clash Display), Newsreader, Inter.
+   LAYOUT: chat left, Tim panel right; under 900px the panel collapses to a bar above the composer. */
+:root{color-scheme:dark;--red:#c13b2e;--ink:#0f0e0d;--bone:#e8e4dc;--iron:#3a3835;--paper:#f1ece1;--display:"Archivo","Arial Narrow",sans-serif;--body:"Newsreader",Georgia,serif;--ui:"Inter",system-ui,sans-serif}
+*{box-sizing:border-box;min-width:0;border-radius:0}
+html,body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--ui);overflow-x:clip}
+a{color:var(--bone)}
+.demo{background:var(--red);font:600 13px/1.4 var(--ui);padding:8px max(5vw,16px);text-align:center}
+.wrap{max-width:1200px;margin:0 auto;padding:28px max(4vw,16px) 48px}
+.narrow{max-width:640px}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+@media(max-width:900px){.split{grid-template-columns:minmax(0,1fr)}}
+.eyebrow{font:600 13px/1 var(--ui);color:var(--red);margin:0}
+h1{font:700 clamp(30px,4.6vw,48px)/1.02 var(--display);font-stretch:75%;text-transform:uppercase;margin:10px 0 14px;text-wrap:balance}
+h2{font:700 22px/1.1 var(--display);font-stretch:75%;text-transform:uppercase;margin:0 0 8px}
+.body{font:400 19px/1.5 var(--body);margin:0 0 16px}
+.small{font-size:16px;opacity:.75}
+.btn{background:var(--red);color:var(--bone);border:1px solid var(--red);min-height:44px;padding:12px 20px;font:600 14px var(--ui);text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+.ghost{background:transparent;border-color:var(--bone);color:var(--bone)}
+.link{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font:14px var(--ui);min-height:44px;padding:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+input,textarea{width:100%;background:var(--ink);color:var(--bone);border:1px solid var(--iron);padding:12px;font:16px var(--ui);resize:vertical}
+.note{font:13px/1.4 var(--ui);opacity:.65;margin:6px 0 0}
+.error{color:#ff8a7a;font-size:14px}
+
+/* chat */
+.chat{display:flex;flex-direction:column;min-height:72vh}
+.top{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--iron);padding-bottom:8px;margin-bottom:12px}
+.top h2{margin:0}
+.log{flex:1;display:flex;flex-direction:column;gap:12px;padding-bottom:12px}
+.msg{max-width:84%;padding:12px 16px;font:400 18px/1.45 var(--body);white-space:pre-wrap}
+.ai{background:var(--iron);align-self:flex-start}
+.me{background:var(--bone);color:var(--ink);align-self:flex-end}
+.dim{opacity:.55}
+.imgcard{align-self:flex-start;width:min(360px,84%);background:var(--paper);color:var(--ink);padding:8px}
+.imgcard svg{width:100%;height:auto;display:block}
+.imgcard details{font:13px/1.4 var(--ui);margin-top:6px}
+.imgcard summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+.imgcard textarea{background:#fff;color:var(--ink);border-color:#cfc7b8;font:12px/1.5 ui-monospace,Menlo,monospace}
+.imgcard.picked{outline:3px solid var(--red);outline-offset:2px}
+.pick{background:none;border:1px solid #0f0e0d;color:#0f0e0d;font:600 13px var(--ui);padding:6px 10px;min-height:36px;cursor:pointer}
+.picked .pick{background:var(--red);border-color:var(--red);color:var(--bone)}
+.importbox{border:1px dashed var(--iron);padding:12px;margin-bottom:12px}
+.chatwrap{max-width:820px}
+.prog{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font:600 12px var(--ui);padding:5px 9px;border:1px solid var(--iron);opacity:.75}
+.pill.ok{background:var(--bone);color:var(--ink);border-color:var(--bone);opacity:1}
+.label{font:600 14px var(--ui);margin:18px 0 8px;display:block}
+.opt{font-weight:400;opacity:.6}
+.pair2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:6px}
+@media(max-width:600px){.pair2{grid-template-columns:minmax(0,1fr)}}
+.check{display:flex;align-items:center;gap:10px;font:16px var(--ui);min-height:40px}
+.check input{width:20px;height:20px;accent-color:var(--red)}
+.saved{align-self:flex-end;font:12px/1.4 var(--ui);color:var(--bone);opacity:.7;margin-top:-6px;max-width:84%;text-align:right}
+.saved::before{content:"✓ ";color:var(--red);font-weight:700}
+.composer textarea{resize:none;min-height:48px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
+.chip{background:none;border:1px solid var(--iron);color:var(--bone);padding:8px 12px;font:14px var(--ui);cursor:pointer;min-height:40px}
+.chip:hover{border-color:var(--bone)}
+.composer{display:flex;gap:8px;position:sticky;bottom:0;background:var(--ink);padding:8px 0}
+
+/* Tim panel */
+.panel{background:var(--paper);color:var(--ink);padding:18px;position:sticky;top:16px}
+@media(max-width:900px){.panel{position:static;order:-1}}
+.panel h2{color:var(--ink)}
+.panel .sub{font:13px/1.4 var(--ui);opacity:.7;margin:0 0 10px}
+.ess{list-style:none;padding:0;margin:12px 0}
+.ess li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid #d8d0c1;font:14px/1.35 var(--ui)}
+.ess .k{font-weight:600;display:block}
+.ess .v{opacity:.85}
+.ess .todo .v{opacity:.45;font-style:italic}
+.tick{width:18px;height:18px;border:2px solid var(--ink);display:inline-grid;place-items:center;font:700 12px var(--ui)}
+.done .tick{background:var(--ink);color:var(--paper)}
+.panel input,.panel textarea{background:#fff;color:var(--ink);border-color:#cfc7b8;padding:10px;font-size:16px}
+.panel .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin:6px 0}
+.panel .check{display:flex;align-items:center;gap:8px;font:14px var(--ui);min-height:36px}
+.panel .check input{width:18px;height:18px;accent-color:var(--red)}
+.panel .btn{width:100%;margin-top:10px}
+.panel .ghost{color:var(--ink);border-color:var(--ink)}
+.bodywrap svg{width:100%;height:auto;display:block;max-width:260px;margin:0 auto}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin:6px 0}
+.thumb{position:relative;padding:0;border:1px solid var(--iron);background:none;cursor:pointer}
+.thumb img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.brief{font:14px/1.5 ui-monospace,Menlo,monospace}
+</style>
+</head>
+<body>
+<div class="demo">Prototype: the AI replies are scripted and the sketches are placeholders. Nothing is sent anywhere.</div>
+<div id="app"></div>
+<script>
+{
+const IG = "meanoldtim", EMAIL = "meanoldtim@gmail.com", MAX_IMAGES = 10;
+const MULTI = "Multi session tattoo", LARGE = "Large tattoo (2-3 sessions)", SINGLE = "Single session tattoo";
+
+// ---- what the AI listens for (the live version uses Claude for this; the demo uses keywords) ----
+// [name, pattern, secondaryOnly]
+const SUBJECTS = [["koi", /\bkoi\b/], ["dragon", /\bdragons?\b/], ["tiger", /\btigers?\b/], ["snake", /\bsnakes?\b/], ["hannya", /\bhannya\b/], ["phoenix", /\bphoenix\b/],
+  ["panther", /\bpanthers?\b/], ["eagle", /\beagles?\b/], ["wolf", /\bwol(f|ves)\b/], ["swallow", /\bswallows?\b/], ["ship", /\bships?\b/], ["lady head", /\blady ?head|pin.?up\b/],
+  ["dagger", /\bdaggers?\b/], ["owl", /\bowls?\b/], ["moth", /\bmoths?\b/], ["butterfly", /\bbutterfl(y|ies)\b/], ["roses", /\broses?\b/], ["heart", /\bhearts?\b/],
+  ["foo dog", /\bfoo ?dogs?\b/], ["crane", /\bcranes?\b/], ["skull", /\bskulls?\b/], ["carp", /\bcarps?\b/],
+  ["peonies", /\bpeon(y|ies)\b/, 1], ["chrysanthemums", /\bchrysanthemums?\b|\bmums\b/, 1], ["cherry blossoms", /\bcherry blossoms?\b|\bsakura\b/, 1], ["maple leaves", /\bmaple/, 1], ["lotus", /\blotus/, 1]];
+const MULTI_SPACES = [
+  [/back to (the )?knees/, "Back to knees"], [/back (with|and) (the )?butt/, "Back with butt"], [/(full )?back ?piece|full back|whole back/, "Back to belt line"],
+  [/leg sleeve/, "Leg sleeve"], [/half sleeve|1\/2 sleeve|elbow to wrist/, "1/2 sleeve (elbow to wrist)"], [/3\/4 sleeve|three quarter/, "3/4 sleeve"],
+  [/full front/, "Full front"], [/sleeve/, "Sleeve"], [/ribs?|side piece/, "Ribs / side"], [/chest|pecs?/, "Pecs"], [/belly|stomach/, "Belly"], [/(on|across) my back|\bmy back\b/, "Back to belt line"],
+];
+const SPOTS = ["forearm", "upper arm", "shoulder", "bicep", "thigh", "calf", "shin", "butt cheek", "hand", "foot", "neck", "ankle", "wrist"];
+const SPACE_REGIONS = {
+  "Back with butt": ["b-upper", "b-lower", "b-butt"], "Back to belt line": ["b-upper", "b-lower"], "Back to knees": ["b-upper", "b-lower", "b-butt", "b-thighL", "b-thighR"],
+  "Sleeve": ["f-uarmL", "f-farmL"], "3/4 sleeve": ["f-uarmL", "f-farmL"], "1/2 sleeve (elbow to wrist)": ["f-farmL"], "Leg sleeve": ["f-thighL", "f-calfL"],
+  "Ribs / side": ["f-ribsL"], "Pecs": ["f-chest"], "Belly": ["f-belly"], "Full front": ["f-chest", "f-belly", "f-ribsL", "f-ribsR"],
+};
+const SPOT_REGIONS = { forearm: ["f-farmL"], wrist: ["f-farmL"], "upper arm": ["f-uarmL"], shoulder: ["f-uarmL"], bicep: ["f-uarmL"], thigh: ["f-thighL"], calf: ["f-calfL"], shin: ["f-calfL"], "butt cheek": ["b-butt"], hand: ["f-handL"], foot: ["f-footL"], ankle: ["f-footL"], neck: ["f-neck"] };
+
+const STYLE_PROMPT = "Traditional tattoo flash illustration in a Japanese and American traditional style: bold black outlines, solid fills, minimal shading, clean negative space, plain off-white paper background, no text, no signature, no logo, no realistic photography. Follow the color instruction exactly.";
+const BG_PROMPT = { "Water": "stylized traditional water and waves in the background", "Wind bars / clouds": "stylized traditional clouds and wind bars in the background", "Water into clouds": "stylized traditional water and waves at the bottom transitioning into clouds at the top", "Fog": "soft traditional fog shapes in the background", "Blackout": "a solid black background with the subject in negative space", "Blackout with clouds": "a solid black background with no negative wind bars, layered traditional clouds over it", "No background": "no background, subject isolated on the paper", "Let Tim decide": "a simple traditional background that suits the subject" };
+const COLOR_PROMPT = { "Black and grey": "black and grey only, no color", "Black, red(s) and grey": "black and grey with red accents only", "Full color": "full traditional color", "Let Tim decide": "limited traditional color" };
+
+const fresh = () => ({
+  f: { main: [], sec: [], size: "", space: "", place: "", bg: "", color: "", notes: [], name: "", contact: "", cover: false, tattooer: false, travel: "" },
+  log: [{ r: "ai", t: "What are you thinking about getting? Rough is fine. Throw anything at me: a subject, a vibe, where it goes.\n\nAlready been working on it in ChatGPT or somewhere else? Paste that conversation right here and I'll pick up where you left off." }],
+  chips: ["A panther on my forearm", "Koi coming up through water", "I've got a ChatGPT chat to paste", "Not sure yet, help me figure it out"],
+  images: 0, photos: [], busy: false, confirmRestart: false, brief: "", copied: false, sentBy: "email",
+  dos: [], donts: [], finalIdx: -1, importOpen: false, imported: null,
+  id: "MOT-" + (1000 + Math.floor(Math.random() * 9000)),
+});
+const S = { stage: "gate", ...fresh() };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const app = document.getElementById("app");
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const isMulti = () => S.f.size === MULTI;
+
+function regions() {
+  if (isMulti()) return SPACE_REGIONS[S.f.space] || [];
+  const p = S.f.place.toLowerCase();
+  return [...new Set(Object.entries(SPOT_REGIONS).filter(([k]) => p.includes(k)).flatMap(([, r]) => r))];
+}
+function spaceLine() {
+  const f = S.f;
+  if (isMulti()) return `Multi session, ${f.space}${f.place ? ` (${f.place})` : ""}`;
+  if (f.size && f.place) return `${f.size}, ${f.place}`;
+  if (f.place) return f.place;
+  return f.size;
+}
+const ESSENTIALS = () => [
+  ["Subject", [S.f.main.join(" + "), S.f.sec.length ? `with ${S.f.sec.join(", ")}` : ""].filter(Boolean).join(" "), S.f.main.length > 0],
+  ["Size and placement", spaceLine(), !!S.f.size && (isMulti() ? !!S.f.space : !!S.f.place)],
+  ["Background", S.f.bg, !!S.f.bg],
+  ["Color", S.f.color, !!S.f.color],
+];
+const missingEss = () => ESSENTIALS().filter(e => !e[2]).map(e => e[0]);
+const contactMissing = () => [!S.f.name.trim() && "your name", !S.f.contact.trim() && "your Instagram or email", S.f.cover && !S.photos.length && "a photo of the tattoo you're covering"].filter(Boolean);
+
+// ---- listen to a message, update what Tim needs, return what changed ----
+function listen(text) {
+  const t = " " + text.toLowerCase() + " ", f = S.f, changed = [];
+  for (const [s, re, secOnly] of SUBJECTS) {
+    const hit = t.match(re); if (!hit) continue;
+    // "no cherry blossoms", "lose the dragon": take it out instead of adding it
+    if (/\b(no|not|without|don'?t( want)?|lose the|get rid of|instead of|drop the|remove the)\b[^.,!?]{0,15}$/.test(t.slice(0, hit.index))) {
+      f.main = f.main.filter(x => x !== s); f.sec = f.sec.filter(x => x !== s); continue;
+    }
+    if ([...f.main, ...f.sec].includes(s)) continue;
+    if (!secOnly && f.main.length < 2) { f.main.push(s); changed.push(s); }
+    else if (f.sec.length < 2) { f.sec.push(s); changed.push(s); }
+  }
+  const mm = MULTI_SPACES.find(([re]) => re.test(t));
+  if (mm && f.space !== mm[1]) { f.size = MULTI; f.space = mm[1]; changed.push(mm[1].toLowerCase()); }
+  const spot = SPOTS.find(s => t.includes(s));
+  if (spot && !mm && f.place !== spot) { f.place = spot; changed.push(spot); }
+  // size words only count when they're clearly about the tattoo's size, not "make the koi bigger"
+  if (/one (sitting|session)|small (piece|one|tattoo)|little (piece|one)|\bsmall,/.test(t) && !mm) { f.size = SINGLE; f.space = ""; changed.push("one sitting"); }
+  else if (/2-3 sessions|two or three sessions|couple (of )?sessions|big piece|large piece|big, /.test(t) && !mm) { f.size = LARGE; f.space = ""; changed.push("a large piece"); }
+  else if (spot && !mm && !f.size) { /* placement known, size still to ask */ }
+  const water = /water|waves?|ocean|sea/.test(t), cloud = /clouds?|wind/.test(t), black = /blackout|black background/.test(t);
+  let bg = "";
+  if (black && cloud) bg = "Blackout with clouds"; else if (black) bg = "Blackout";
+  else if (water && cloud) bg = "Water into clouds"; else if (water) bg = "Water"; else if (cloud) bg = "Wind bars / clouds";
+  else if (/\bfog/.test(t)) bg = "Fog"; else if (/no background|keep it clean|plain|just the/.test(t)) bg = "No background";
+  else if (/(tim|you) (can )?decide|up to tim/.test(t) && !f.bg) bg = "Let Tim decide";
+  if (bg && f.bg !== bg) { f.bg = bg; changed.push(bg.toLowerCase()); }
+  let color = "";
+  if (/black (and|&) gr[ae]y|b&g|no colou?r|black and white/.test(t)) color = "Black and grey";
+  else if (/\breds?\b/.test(t)) color = "Black, red(s) and grey";
+  else if (/full colou?r|colou?rful|bright/.test(t)) color = "Full color";
+  else if (/(tim|you) (can )?decide|up to tim/.test(t) && f.bg && !f.color) color = "Let Tim decide";
+  if (color && f.color !== color) { f.color = color; changed.push(color.toLowerCase()); }
+  if (/cover[- ]?up|cover (up )?an old|covering/.test(t) && !f.cover) { f.cover = true; changed.push("cover-up"); }
+  // do's and don'ts: the decisions a client makes while iterating are what Tim needs most
+  const clean = text.trim().replace(/\s+/g, " ").slice(0, 140);
+  // a short answer that just set an essential ("No background, keep it clean") isn't a do or don't
+  const justAnAnswer = changed.length > 0 && text.trim().length < 35;
+  const isDont = !justAnAnswer && /\b(no|not|don'?t|less|without|too|never|hate|instead of|lose the|get rid)\b/.test(t);
+  if (isDont) { if (!S.donts.includes(clean)) S.donts.push(clean); }
+  else if (!justAnAnswer && /\b(more|add|keep|love|like|bigger|must|want|needs? to|make (it|the))\b/.test(t) && S.images > 0) { if (!S.dos.includes(clean)) S.dos.push(clean); }
+  // keep the client's own words when they say something meaningful, so Tim gets the why
+  if (text.trim().length > 25 && !isDont && !justAnAnswer && !/^(make|add|more|less|change|try|different|darker|lighter|simpler)\b/i.test(text.trim())) f.notes.push(text.trim());
+  return changed;
+}
+
+function imagePrompt(tweak) {
+  const f = S.f, where = isMulti() ? f.space : (f.place || "medium-sized area");
+  const subject = [
+    `Main subject: ${f.main.join(" and ")}.`, f.sec.length && `Secondary elements: ${f.sec.join(" and ")}.`,
+    `Composition: a design shaped to fit a ${where.toLowerCase()}${isMulti() ? ", large multi session piece" : ""}.`,
+    BG_PROMPT[f.bg] && `Background: ${BG_PROMPT[f.bg]}.`, COLOR_PROMPT[f.color] && `Color: ${COLOR_PROMPT[f.color]}.`,
+    f.notes.length && `Client notes: ${f.notes.join(" ").slice(0, 300)}`, tweak && `Change from last version: ${tweak}`,
+  ].filter(Boolean).join(" ");
+  return `${STYLE_PROMPT}\n\nSubject: ${subject}`;
+}
+
+// ---- the AI's next turn ----
+function nextQuestion() {
+  const miss = missingEss()[0];
+  if (miss === "Subject") return ["What's the main thing you want in it? An animal, a figure, an object, a flower?", ["Panther", "Koi", "Eagle", "Dragon", "Roses", "Snake"]];
+  if (miss === "Size and placement") {
+    if (S.f.place && !S.f.size) return [`How big on the ${S.f.place}? One sitting, or a bigger piece?`, ["One sitting", "Big, 2-3 sessions", "Make it a full sleeve"]];
+    return ["Where's it going, and how big are we talking?", ["Full sleeve", "Half sleeve", "Back piece", "Thigh, 2-3 sessions", "Small, one sitting"]];
+  }
+  if (miss === "Background") return ["Anything behind or around it? A background can tie the whole piece together, or you can keep it clean.", ["Water", "Clouds", "Water into clouds", "Blackout", "No background, keep it clean", "Let Tim decide"]];
+  if (miss === "Color") return ["Color or black and grey?", ["Black and grey", "Black, red and grey", "Full color", "Let Tim decide"]];
+  return [null, ["Wrap up for Tim", "More water", "Different pose", "Darker", "Simpler"]];
+}
+
+function reply(text, changed) {
+  const out = [], f = S.f, hadImage = S.images > 0;
+  if (/not sure|help me|no idea/.test(text.toLowerCase()) && !changed.length) {
+    out.push({ r: "ai", t: "No stress. Start with a feeling or something you keep coming back to. Strength, luck, getting through something? Or just an animal you love?" });
+    S.chips = ["Strength", "Luck", "Getting through a rough year", "I just love koi"];
+    return out;
+  }
+  const ack = changed.length ? `${cap(changed.slice(0, 3).join(", "))}. ${changed.length > 1 ? "Nice, that works together." : "Good."}` : (hadImage ? "Got it, let me try that." : "Okay.");
+  const wantsImage = f.main.length && S.images < MAX_IMAGES && (!hadImage || changed.length || text.trim().length > 3);
+  if (wantsImage) {
+    S.images++;
+    const tweak = hadImage ? text.trim().slice(0, 200) : "";
+    out.push({ r: "ai", t: hadImage ? ack : `${ack} Here's a rough sketch to think with. Quick heads up: it's not your tattoo and it doesn't go to Tim. What you tell me does. So what would you change?` });
+    out.push({ r: "img", n: S.images, line: [f.main.join(" + "), f.bg, f.color].filter(Boolean).join(" / ") + (tweak ? ` / ${tweak}` : ""), prompt: imagePrompt(tweak) });
+  } else if (S.images >= MAX_IMAGES) {
+    out.push({ r: "ai", t: `That's the ${MAX_IMAGES}-image limit for this session. You've got plenty to think with. Send it to Tim and he'll take it from here.` });
+  } else out.push({ r: "ai", t: ack });
+  const [q, chips] = nextQuestion();
+  if (q) out.push({ r: "ai", t: q });
+  else if (!S.doneSaid) { S.doneSaid = true; out.push({ r: "ai", t: "That's everything Tim needs. Keep riffing as long as you want. When you're ready, hit Wrap up for Tim. He gets the details and your do's and don'ts, never the images." }); }
+  S.chips = chips;
+  return out;
+}
+
+const looksLikeChat = t => t.length > 300 || /^(you said|you|me|user|chatgpt|assistant|gemini)\s*:/im.test(t);
+
+function savedLine(before) {
+  const f = S.f, parts = [];
+  const newMain = f.main.filter(x => !before.main.includes(x)), newSec = f.sec.filter(x => !before.sec.includes(x));
+  if (newMain.length || newSec.length) parts.push([...newMain, ...newSec].join(", "));
+  if (f.space !== before.space && f.space) parts.push(f.space.toLowerCase()); else if (f.place !== before.place && f.place) parts.push(f.place);
+  if (f.size !== before.size && f.size && !isMulti()) parts.push(f.size.toLowerCase());
+  if (f.bg !== before.bg && f.bg) parts.push(`background: ${f.bg.toLowerCase()}`);
+  if (f.color !== before.color && f.color) parts.push(f.color.toLowerCase());
+  if (f.cover && !before.cover) parts.push("cover-up");
+  if (S.dos.length > before.dos) parts.push(`want: "${S.dos[S.dos.length - 1]}"`);
+  if (S.donts.length > before.donts) parts.push(`don't want: "${S.donts[S.donts.length - 1]}"`);
+  if (f.notes.length > before.notes) parts.push("your idea, in your words");
+  return parts.length ? { r: "saved", t: `Saved for Tim: ${parts.join(" · ")}` } : null;
+}
+
+function importChat(text) {
+  const before = { main: [...S.f.main], sec: [...S.f.sec], space: S.f.space, place: S.f.place, size: S.f.size, bg: S.f.bg, color: S.f.color, cover: S.f.cover, dos: S.dos.length, donts: S.donts.length, notes: S.f.notes.length };
+  const lines = text.split(/\n+/).map(l => l.replace(/^(you said|you|me|user|human)\s*:?\s*/i, "").trim()).filter(l => l && !/^(chatgpt|assistant|gemini|ai)\s*:?/i.test(l));
+  S.images = Math.max(S.images, 1); // so their iteration notes count as do's and don'ts
+  lines.forEach(l => listen(l));
+  S.log.push({ r: "me", t: `[Pasted a conversation, ${lines.length} message${lines.length === 1 ? "" : "s"} from you]` });
+  const sv = savedLine(before); if (sv) S.log.push(sv);
+  S.log.push({ r: "ai", t: `Read through it. Everything you decided over there is saved for Tim${sv ? "" : ", though I didn't catch much yet"}. Any images you made there stay with you. Let's keep going from here.` });
+  const [q, chips] = nextQuestion(); if (q) S.log.push({ r: "ai", t: q }); S.chips = q ? chips : ["Wrap up for Tim", ...chips];
+}
+
+function send(text) {
+  text = text.trim(); if (!text || S.busy) return;
+  if (/^i'?ve got a chatgpt chat/i.test(text)) {
+    S.log.push({ r: "me", t: text }, { r: "ai", t: "Perfect. Paste the whole thing in the box below, messy is fine. I'll pull out what you decided." }); S.chips = []; render(); document.getElementById("in")?.focus(); return;
+  }
+  if (looksLikeChat(text)) { S.busy = true; render(); setTimeout(() => { importChat(text); S.busy = false; render(); }, 900); return; }
+  const before = { main: [...S.f.main], sec: [...S.f.sec], space: S.f.space, place: S.f.place, size: S.f.size, bg: S.f.bg, color: S.f.color, cover: S.f.cover, dos: S.dos.length, donts: S.donts.length, notes: S.f.notes.length };
+  S.log.push({ r: "me", t: text }); S.chips = []; S.busy = true;
+  const changed = listen(text);
+  const sv = savedLine(before); if (sv) S.log.push(sv);
+  render();
+  setTimeout(() => { S.log.push(...reply(text, changed)); S.busy = false; render(); document.getElementById("in")?.focus(); }, 700);
+}
+
+function briefText() {
+  const f = S.f, pick = S.finalIdx >= 0 ? S.log[S.finalIdx] : null;
+  const open = [...missingEss().map(m => `${m.toLowerCase()} not settled`), !S.photos.length && "no placement photos yet", f.cover && "cover-up: check the old tattoo in person or on a call", isMulti() && "confirm size and flow on the body"].filter(Boolean);
+  const list = xs => xs.map(x => `- ${x}`).join("\n");
+  return [`TATTOO BRIEF ${S.id}`, ``, `From: ${f.name.trim()} (${f.contact.trim()})`, ``,
+    `THE ESSENTIALS`, `Main subject: ${f.main.join(" + ") || "not set"}`, f.sec.length ? `Secondary: ${f.sec.join(" + ")}` : null,
+    `Space: ${spaceLine() || "not set"}`, `Background: ${f.bg || "not set"}`, `Color: ${f.color || "not set"}`, f.cover ? `Cover-up: YES` : null, f.tattooer ? `Client is a tattooer` : null,
+    S.photos.length ? `Reference/placement photos: ${S.photos.length} attached` : null, f.travel.trim() ? `Travel: ${f.travel.trim()}` : null,
+    ``, `DESIGN NOTES`, f.notes.length ? `The idea, in their words: ${f.notes.join(" / ").slice(0, 500)}` : `The idea: see essentials`,
+    S.dos.filter(d => !f.notes.includes(d)).length ? `\nThey want:\n${list(S.dos.filter(d => !f.notes.includes(d)))}` : null, S.donts.length ? `\nThey don't want:\n${list(S.donts)}` : null,
+    pick ? `\nThe version they liked best had: ${pick.line.split(" / ").join(", ")}` : null,
+    ``, `STILL OPEN FOR TIM`, open.length ? list(open) : "- nothing flagged",
+    `Suggested next step: ${f.cover || missingEss().length ? "quick call or visit" : "ready to plan and book"}`].filter(l => l !== null).join("\n");
+}
+
+let bodyN = 0;
+function body(on) {
+  const n = ++bodyN, INK = "#0f0e0d", SKIN = "#ddd5c6", RED = "#c13b2e";
+  const torso = c => `M${c-16},57 L${c+16},57 Q${c+32},58 ${c+32},72 Q${c+30},96 ${c+22},124 Q${c+30},140 ${c+27},156 Q${c+14},166 ${c},164 Q${c-14},166 ${c-27},156 Q${c-30},140 ${c-22},124 Q${c-30},96 ${c-32},72 Q${c-32},58 ${c-16},57 Z`;
+  // limbs as round-capped strokes: [id, x1, y1, x2, y2, width]
+  const limbs = c => [
+    ["uarmL", c-30, 66, c-42, 116, 15], ["farmL", c-42, 116, c-48, 162, 12],
+    ["uarmR", c+30, 66, c+42, 116, 15], ["farmR", c+42, 116, c+48, 162, 12],
+    ["thighL", c-14, 150, c-15, 214, 25], ["calfL", c-15, 214, c-14, 266, 18],
+    ["thighR", c+14, 150, c+15, 214, 25], ["calfR", c+15, 214, c+14, 266, 18],
+  ];
+  function figure(c, v) {
+    const p = v === "front" ? "f-" : "b-", on_ = id => on.includes(p + id);
+    const L = limbs(c);
+    const feet = v === "front"
+      ? [["footL", c-17, 274, 11, 5], ["footR", c+17, 274, 11, 5]]
+      : [["footL", c-14, 271, 7, 6], ["footR", c+14, 271, 7, 6]];
+    const hands = [["handL", c-50, 173, 6, 9], ["handR", c+50, 173, 6, 9]];
+    const line = (l, w, col) => `<line x1="${l[1]}" y1="${l[2]}" x2="${l[3]}" y2="${l[4]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+    const ell = (e, fill, stroke = "none", sw = 0) => `<ellipse cx="${e[1]}" cy="${e[2]}" rx="${e[3]}" ry="${e[4]}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    const head = ["head", c, 28, 15, 18];
+    // 1. outline pass, 2. fill pass: gives one clean silhouette
+    let g = L.map(l => line(l, l[5] + 3.5, INK)).join("") + [...feet, ...hands, head].map(e => ell(e, INK, INK, 3.5)).join("")
+      + `<rect x="${c-6}" y="43" width="12" height="17" fill="${INK}" stroke="${INK}" stroke-width="3.5"/><path d="${torso(c)}" fill="${INK}" stroke="${INK}" stroke-width="3.5"/>`;
+    g += L.map(l => line(l, l[5], on_(l[0]) ? RED : SKIN)).join("") + [...feet, ...hands].map(e => ell(e, on_(e[0]) ? RED : SKIN)).join("")
+      + `<rect x="${c-6}" y="43" width="12" height="17" fill="${on_("neck") ? RED : SKIN}"/><path d="${torso(c)}" fill="${SKIN}"/>`;
+    // torso regions, clipped to the torso shape
+    const clip = `cl${n}${v}`;
+    const T = v === "front"
+      ? { chest: [c-32, 57, 64, 42], belly: [c-22, 99, 44, 49], ribsL: [c-34, 74, 15, 56], ribsR: [c+19, 74, 15, 56] }
+      : { upper: [c-32, 57, 64, 52], lower: [c-32, 109, 64, 33], butt: [c-32, 142, 64, 30] };
+    g += `<clipPath id="${clip}"><path d="${torso(c)}"/></clipPath><g clip-path="url(#${clip})">`
+      + Object.entries(T).filter(([k]) => on_(k)).map(([, r]) => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="${RED}"/>`).join("") + `</g>`;
+    if (v === "back" && on_("butt")) g += line(["", c-14, 152, c-14, 168], 25, RED) + line(["", c+14, 152, c+14, 168], 25, RED);
+    // head on top, with front/back cues
+    g += ell(head, on_("head") ? RED : SKIN);
+    const cue = `stroke="${INK}" stroke-width="1.6" fill="none" stroke-linecap="round"`;
+    if (v === "front") {
+      g += `<circle cx="${c-5}" cy="26" r="1.8" fill="${INK}"/><circle cx="${c+5}" cy="26" r="1.8" fill="${INK}"/><path d="M${c-5},35 Q${c},38 ${c+5},35" ${cue}/>`
+        + `<path d="M${c-22},90 Q${c-11},98 ${c-2},90 M${c+2},90 Q${c+11},98 ${c+22},90" ${cue} opacity=".55"/><circle cx="${c}" cy="132" r="1.8" fill="${INK}" opacity=".55"/>`
+        + `<path d="M${c-20},214 q5,4 10,0 M${c+10},214 q5,4 10,0" ${cue} opacity=".45"/>`;
+    } else {
+      g += `<path d="M${c-15},28 Q${c-16},9 ${c},10 Q${c+16},9 ${c+15},28 Q${c+14},40 ${c},44 Q${c-14},40 ${c-15},28 Z" fill="${on_("head") ? "#7a1f17" : "#3a3835"}"/>`
+        + `<path d="M${c},60 L${c},140" ${cue} stroke-dasharray="3 4" opacity=".55"/><path d="M${c-22},72 q6,14 14,12 M${c+22},72 q-6,14 -14,12" ${cue} opacity=".5"/>`
+        + `<path d="M${c},150 L${c},164" ${cue} opacity=".55"/>`;
+    }
+    const label = v === "front" ? "FRONT" : "BACK";
+    return `<g>${g}<text x="${c}" y="300" text-anchor="middle" font-family="Archivo,Arial Narrow,sans-serif" font-weight="700" font-size="17" letter-spacing="1" fill="${INK}">${label}</text>
+      <text x="${c}" y="316" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="${INK}" opacity=".65">${v === "front" ? "facing you" : "from behind"}</text></g>`;
+  }
+  return `<svg viewBox="0 0 330 322" role="img" aria-label="Body map, front and back${on.length ? ", placement highlighted in red" : ""}">${figure(78, "front")}<line x1="165" y1="10" x2="165" y2="285" stroke="#0f0e0d" stroke-opacity=".15"/>${figure(252, "back")}</svg>`;
+}
+
+function concept(n, line) {
+  const marks = Array.from({ length: 7 }, (_, i) => `<text x="-80" y="${i * 70}" font-size="13" font-weight="700" fill="#0f0e0d" fill-opacity=".16">AI CONCEPT. NOT A MEAN OLD TIM DESIGN. AI CONCEPT. NOT A MEAN OLD TIM DESIGN.</text>`).join("");
+  return `<svg viewBox="0 0 320 320" role="img" aria-label="AI concept ${n}"><rect width="320" height="320" fill="#f1ece1"/><text x="160" y="134" text-anchor="middle" font-family="Inter,sans-serif" font-size="15" fill="#3a3835">Concept ${n}</text><text x="160" y="156" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3a3835">${esc(line.slice(0, 50))}</text><text x="160" y="174" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#3a3835">Generated image appears here</text><g transform="rotate(-30 160 160)" font-family="Inter,sans-serif">${marks}</g><rect y="298" width="320" height="22" fill="#c13b2e"/><text x="160" y="313" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="10" fill="#e8e4dc">AI CONCEPT. NOT A MEAN OLD TIM DESIGN.</text></svg>`;
+}
+
+// ---- views ----
+function progressBar() {
+  return `<div class="prog" aria-label="What Tim needs">${ESSENTIALS().map(([k, , ok]) => `<span class="pill ${ok ? "ok" : ""}">${ok ? "✓ " : ""}${k}</span>`).join("")}</div>`;
+}
+
+function chatView() {
+  const ready = !missingEss().length;
+  return `<main class="wrap chatwrap"><section class="chat">
+    <div class="top"><h2>Riff on your idea</h2><span class="spacer"></span>
+      <button class="link" data-a="restart">${S.confirmRestart ? "Tap again to clear everything" : "Start over"}</button></div>
+    <div class="row" style="gap:8px;margin-bottom:12px"><span class="note" style="margin:0">Tim needs:</span>${progressBar()}<span class="spacer"></span><button class="btn ${ready ? "" : "ghost"}" data-a="wrap" ${ready ? "" : "disabled"}>Wrap up for Tim</button></div>
+    <div class="log">${S.log.map((m, i) => m.r === "img"
+      ? `<figure class="imgcard ${S.finalIdx === i ? "picked" : ""}" style="margin:0">${concept(m.n, m.line)}
+          <div class="row" style="gap:6px;margin-top:6px"><button class="pick" data-pick="${i}">${S.finalIdx === i ? "✓ Closest so far" : "This one's closest"}</button></div>
+          <details><summary>Test mode: image prompt</summary><textarea rows="6" readonly>${esc(m.prompt)}</textarea><button class="link" data-copy="${i}">Copy prompt</button></details></figure>`
+      : m.r === "saved" ? `<div class="saved">${esc(m.t)}</div>` : `<div class="msg ${m.r}">${esc(m.t)}</div>`).join("")}
+      ${S.busy ? `<div class="msg ai dim">...</div>` : ""}<div id="end"></div></div>
+    ${S.chips.length && !S.busy ? `<div class="chips">${S.chips.map(c => `<button class="chip" data-chip="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}
+    <form class="composer" id="cf"><textarea id="in" rows="2" placeholder="Say anything about your idea, or paste a ChatGPT conversation..." aria-label="Message"></textarea><button class="btn" ${S.busy ? "disabled" : ""}>Send</button></form>
+    <p class="note">${S.images}/${MAX_IMAGES} sketches used. Sketches are for thinking and stay with you. Everything you decide goes to Tim.</p>
+  </section></main>`;
+}
+
+function wrapView() {
+  const f = S.f, cm = contactMissing();
+  return `<main class="wrap split"><section>
+    <p class="eyebrow">Wrapping up</p><h1>Here's what Tim gets.</h1>
+    <p class="body small">Everything you worked out in the chat, boiled down: the details that matter, what you want, what you don't. Add any real reference photos. The sketches were for thinking, so they stay with you.</p>
+    <span class="label">You</span>
+    <div class="pair2"><input data-k="name" value="${esc(f.name)}" placeholder="Your name" aria-label="Your name"><input data-k="contact" value="${esc(f.contact)}" placeholder="Instagram or email" aria-label="Instagram or email"></div>
+    <label class="check"><input type="checkbox" data-k="cover" ${f.cover ? "checked" : ""}> This is a cover-up</label>
+    <label class="check"><input type="checkbox" data-k="tattooer" ${f.tattooer ? "checked" : ""}> I'm a tattooer</label>
+    <input data-k="travel" value="${esc(f.travel)}" placeholder="Traveling in? From where (optional)" aria-label="Travel">
+    <span class="label">Reference and placement photos <span class="opt">${f.cover ? "required for cover-ups" : "optional"}, up to 5</span></span>
+    <p class="note" style="margin:0 0 8px">${f.cover ? "Clear photos of the tattoo you want covered, in good light." : "Real photos only: the spot on your body, tattoos or art you like. No AI images."}</p>
+    ${S.photos.length ? `<div class="thumbs">${S.photos.map((p, i) => `<button class="thumb" data-rm="${i}" aria-label="Remove photo ${i + 1}"><img src="${p}" alt=""></button>`).join("")}</div>` : ""}
+    ${S.photos.length < 5 ? `<input type="file" id="ph" accept="image/*" multiple aria-label="Add photos">` : ""}
+    <span class="label">The brief <span class="opt">edit anything that's off</span></span>
+    <textarea class="brief" id="bt" rows="18">${esc(S.brief)}</textarea>
+    <div class="row" style="margin-top:16px"><button class="btn" data-a="em" ${S.busy || cm.length ? "disabled" : ""}>${S.busy ? "Sending..." : "Send to Tim"}</button><button class="btn ghost" data-a="ig" ${cm.length ? "disabled" : ""}>Copy brief and open Instagram DM</button></div>
+    <p class="note" id="need">${cm.length ? `Add ${cm.join(", ")}.` : "Sending includes your photos. With Instagram, you attach them in the DM yourself."}</p>
+    <button class="link" data-a="back">Back to the chat</button>
+  </section>
+  <aside class="panel"><h2>At a glance</h2><div class="bodywrap">${body(regions())}</div>
+    <ul class="ess">${ESSENTIALS().map(([k, v, ok]) => `<li class="${ok ? "done" : "todo"}"><span class="tick" aria-hidden="true">${ok ? "✓" : ""}</span><span><span class="k">${k}</span><span class="v">${ok ? esc(v) : "not settled"}</span></span></li>`).join("")}</ul>
+    <p class="sub">${S.dos.length} do${S.dos.length === 1 ? "" : "'s"} and ${S.donts.length} don't${S.donts.length === 1 ? "" : "s"} from your chat.</p></aside></main>`;
+}
+
+function render() {
+  if (S.stage === "gate") {
+    app.innerHTML = `<main class="wrap narrow"><p class="eyebrow">Plan your tattoo</p><h1>Plan it here. I'll draw it.</h1>
+      <p class="body">A lot of people use AI to work out their tattoo ideas now. That's cool with me. It's a good way to figure out what you actually want.</p>
+      <p class="body">But I don't tattoo AI images. You came to me for a piece drawn for you and your body, and that's what you'll get.</p>
+      <p class="body">So riff on your idea here with AI as much as you want, or bring in what you already worked out in ChatGPT. Every decision you make along the way comes straight to me. The AI pictures are sketches to help you get there. They're not your tattoo and I don't see them. I take what you figured out, plus any real reference photos, and draw yours from scratch.</p>
+      <p class="body small">Rather just talk it out? DM <a href="https://instagram.com/${IG}">@${IG}</a>.</p>
+      <button class="btn" data-a="go">I'm 18 or older. Let's go</button></main>`;
+    return;
+  }
+  if (S.stage === "sent") {
+    app.innerHTML = `<main class="wrap narrow"><p class="eyebrow">Brief ${S.id}</p><h1>Sent your way.</h1>
+      <p class="body">${S.sentBy === "email" ? `Tim has your brief${S.photos.length ? " and photos" : ""}. He'll get back to you at ${esc(S.f.contact.trim())}. ` : `${S.copied ? "Your brief is copied. Paste it into the DM with Tim. " : ""}Attach your photos in the DM too. `}Tim will plan it with you, then the shop handles booking and the deposit.</p>
+      <p class="note">${S.sentBy === "email" ? `In the live version this emails ${EMAIL} with the photos attached.` : `In the live version this opens <a href="https://ig.me/m/${IG}">your DM with @${IG}</a>.`}</p>
+      <div class="row" style="margin-top:20px"><button class="btn ghost" data-a="back">Back to my idea</button><button class="link" data-a="restart">${S.confirmRestart ? "Tap again to clear everything" : "Plan another tattoo"}</button></div></main>`;
+    return;
+  }
+  app.innerHTML = S.stage === "wrap" ? wrapView() : chatView();
+  if (S.stage === "chat") document.getElementById("end")?.scrollIntoView({ block: "nearest" });
+}
+
+function refreshWrap() {
+  const cm = contactMissing();
+  for (const sel of ['[data-a="em"]', '[data-a="ig"]']) { const b = app.querySelector(sel); if (b) b.disabled = cm.length > 0; }
+  const n = document.getElementById("need"); if (n) n.textContent = cm.length ? `Add ${cm.join(", ")}.` : "Sending includes your photos. With Instagram, you attach them in the DM yourself.";
+  const bt = document.getElementById("bt"); if (bt && !S.briefEdited) { S.brief = briefText(); bt.value = S.brief; }
+}
+
+app.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const a = b.dataset.a;
+  if (b.dataset.chip) { if (b.dataset.chip === "Wrap up for Tim") { S.brief = briefText(); S.briefEdited = false; S.stage = "wrap"; render(); window.scrollTo(0, 0); } else send(b.dataset.chip); return; }
+  if (b.dataset.pick) { const i = +b.dataset.pick; S.finalIdx = S.finalIdx === i ? -1 : i; render(); return; }
+  if (b.dataset.copy) { const m = S.log[+b.dataset.copy]; try { await navigator.clipboard.writeText(m.prompt); b.textContent = "Copied"; } catch { b.previousElementSibling.select(); } return; }
+  if (b.dataset.rm) { S.photos.splice(+b.dataset.rm, 1); S.brief = S.briefEdited ? S.brief : briefText(); render(); return; }
+  if (a === "go") { S.stage = "chat"; render(); document.getElementById("in")?.focus(); }
+  else if (a === "import") { S.importOpen = !S.importOpen; render(); }
+  else if (a === "doimport") {
+    const text = document.getElementById("imptext").value;
+    const lines = text.split(/\n+/).map(l => l.replace(/^(you said|you|me|user|human)\s*:?\s*/i, "").trim()).filter(l => l && !/^(chatgpt|assistant|gemini|ai)\s*:?/i.test(l));
+    S.images = Math.max(S.images, 1); // so their iteration notes count as do's and don'ts
+    lines.forEach(l => listen(l));
+    S.importOpen = false;
+    S.log.push({ r: "me", t: "[Brought in a conversation from another AI tool]" });
+    const got = [S.f.main.length && S.f.main.join(" + "), S.f.space || S.f.place, S.f.bg, S.f.color].filter(Boolean);
+    S.log.push({ r: "ai", t: `Read through it. I picked up: ${got.join(", ") || "not much yet"}, plus ${S.dos.length} things you want and ${S.donts.length} things you don't. Keep going from here.` });
+    const [q, chips] = nextQuestion(); if (q) S.log.push({ r: "ai", t: q }); S.chips = q ? chips : ["Wrap up for Tim", ...chips]; render();
+  }
+  else if (a === "wrap") { S.brief = briefText(); S.briefEdited = false; S.stage = "wrap"; render(); window.scrollTo(0, 0); }
+  else if (a === "back") { S.stage = "chat"; render(); }
+  else if (a === "restart") {
+    if (!S.confirmRestart) { S.confirmRestart = true; render(); clearTimeout(S.rt); S.rt = setTimeout(() => { S.confirmRestart = false; render(); }, 4000); return; }
+    clearTimeout(S.rt); Object.assign(S, fresh(), { stage: "chat", doneSaid: false, briefEdited: false }); render(); window.scrollTo(0, 0);
+  }
+  else if (a === "em") { S.busy = true; render(); setTimeout(() => { S.busy = false; S.sentBy = "email"; S.stage = "sent"; render(); }, 900); }
+  else if (a === "ig") { try { await navigator.clipboard.writeText(document.getElementById("bt").value); S.copied = true; } catch { S.copied = false; } S.sentBy = "dm"; S.stage = "sent"; render(); }
+});
+app.addEventListener("keydown", e => { if (e.target.id === "in" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e.target.value); } });
+app.addEventListener("submit", e => { e.preventDefault(); const i = document.getElementById("in"); if (i) send(i.value); });
+app.addEventListener("input", e => {
+  const t = e.target, k = t.dataset.k;
+  if (t.id === "bt") { S.brief = t.value; S.briefEdited = true; return; }
+  if (!k) return;
+  S.f[k] = t.type === "checkbox" ? t.checked : t.value;
+  if (t.type === "checkbox") { if (!S.briefEdited) S.brief = briefText(); render(); return; }
+  refreshWrap();
+});
+app.addEventListener("change", e => {
+  if (e.target.id !== "ph") return;
+  const files = [...e.target.files].slice(0, 5 - S.photos.length);
+  Promise.all(files.map(f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); })))
+    .then(urls => { S.photos.push(...urls); if (!S.briefEdited) S.brief = briefText(); render(); }).catch(() => {});
+});
+render();
+}
+</script>
+</body>
+</html>
