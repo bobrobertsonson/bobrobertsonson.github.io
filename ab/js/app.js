@@ -340,6 +340,17 @@ function seg7(str, cells) {
 }
 
 // ---------------------------------------------------------------- knobs (61-frame filmstrip)
+const sheet = $('sheet');
+function openSheet(title, options, cur, pick) {
+  $('sheetTitle').textContent = title;
+  $('sheetOpts').innerHTML = options.map((o, i) => `<button class="btn" data-i="${i}" aria-pressed="${i === cur}">${esc(o.t)}</button>`).join('');
+  sheet.hidden = false; sheet._pick = pick; const b = $('sheetOpts').querySelector('[aria-pressed="true"]'); if (b) b.focus();
+}
+const closeSheet = () => { sheet.hidden = true; sheet._pick = null; };
+$('sheetOpts').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; const f = sheet._pick; closeSheet(); if (f) f(+b.dataset.i); });
+$('sheetClose').addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
 function Knob(el, { label, options, value, onChange }) {
   const n = options.length, span = n <= 3 ? 60 : (n <= 5 ? 120 : 135);
   const angleOf = i => n === 1 ? 0 : -span + i * (2 * span / (n - 1)), frameOf = a => Math.round((a + 150) / 5);
@@ -351,10 +362,16 @@ function Knob(el, { label, options, value, onChange }) {
   const show = () => { const fr = frameOf(angleOf(idx)); img.style.backgroundPosition = ((fr % 8) / 7 * 100) + '% ' + (Math.floor(fr / 8) / 7 * 100) + '%'; ticks.forEach((t, i) => t.classList.toggle('on', i === idx));
     val.textContent = options[idx].t; dial.setAttribute('aria-valuetext', options[idx].t); dial.setAttribute('aria-valuenow', idx); dial.setAttribute('aria-valuemin', 0); dial.setAttribute('aria-valuemax', n - 1); };
   const set = (i, fire = true) => { i = Math.max(0, Math.min(n - 1, i)); if (i === idx) return; idx = i; show(); if (fire) onChange(options[idx].v); };
+  /* Vertical swipes scroll the page (touch-action: pan-y), so scrolling past a knob never turns it.
+     Turn by dragging sideways, or tap to pick from a list. */
   let drag = null;
-  dial.addEventListener('pointerdown', e => { dial.setPointerCapture(e.pointerId); drag = { y: e.clientY, x: e.clientX, i: idx, moved: false }; });
-  dial.addEventListener('pointermove', e => { if (!drag) return; const d = (drag.y - e.clientY) + (e.clientX - drag.x); if (Math.abs(d) > 6) drag.moved = true; if (drag.moved) set(drag.i + Math.round(d / 28)); });
-  dial.addEventListener('pointerup', () => { if (drag && !drag.moved) set(idx === n - 1 ? 0 : idx + 1); drag = null; });
+  dial.addEventListener('pointerdown', e => { drag = { y: e.clientY, x: e.clientX, i: idx, mode: null, id: e.pointerId }; });
+  dial.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.mode) { if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) drag.mode = 'scroll'; else if (Math.abs(dx) > 12) { drag.mode = 'turn'; try { dial.setPointerCapture(drag.id); } catch (err) {} } }
+    if (drag.mode === 'turn') set(drag.i + Math.round(dx / 28)); });
+  let tap = false;   // open the picker on click, not pointerup, so the same tap cannot land on the sheet and close it
+  dial.addEventListener('pointerup', () => { tap = !!(drag && !drag.mode); drag = null; });
+  dial.addEventListener('click', () => { if (tap) openSheet(label, options, idx, i => set(i)); tap = false; });
   dial.addEventListener('pointercancel', () => { drag = null; });
   dial.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowRight'].includes(e.key)) { e.preventDefault(); set(idx + 1); } if (['ArrowDown', 'ArrowLeft'].includes(e.key)) { e.preventDefault(); set(idx - 1); } });
   show();
@@ -570,6 +587,7 @@ function renderPads() {
     $('big' + p).textContent = S.blind ? (p === 'L' ? 'X' : 'Y') : (p === 'L' ? 'MIX' : 'REF' + (S.refs.length > 1 ? ' ' + (S.sel + 1) : ''));
     $('g' + p).textContent = has && !S.blind ? sgn(gainDb(t)) + ' dB' : '';
     $('st' + p).textContent = on ? 'On' : (S.blind ? 'Tap' : (p === 'L' ? 'Blade' : 'Body'));
+    const d = $('d' + p); d.disabled = !has; d.setAttribute('aria-pressed', on); d.textContent = S.blind ? (p === 'L' ? 'X' : 'Y') : (p === 'L' ? 'Mix' : 'Ref' + (S.refs.length > 1 ? ' ' + (S.sel + 1) : ''));
   }
   const ch = $('refChips'); ch.hidden = S.refs.length < 2;
   ch.innerHTML = S.refs.map((t, i) => `<button class="chip" data-chip="${i}" aria-pressed="${i === S.sel}"><i></i><span>${i + 1} · ${esc(hideNames() ? 'Ref' : t.name.replace(/\.[^.]+$/, ''))}</span></button>`).join('');
@@ -577,7 +595,7 @@ function renderPads() {
 $('refChips').addEventListener('click', e => { const c = e.target.closest('[data-chip]'); if (c) selectRef(+c.dataset.chip); });
 let clockStr = '', durStr = '';   // the clock shows tenths, so rebuild its SVG only when the text changes
 function updateClock() { const c = fmt10(Math.min(now(), dur())), d = fmt(dur());
-  if (c !== clockStr) { clockStr = c; $('clock').innerHTML = seg7(c, 4); } if (d !== durStr) { durStr = d; $('dur').textContent = d; } }
+  if (c !== clockStr) { clockStr = c; $('clock').innerHTML = seg7(c, 4); $('dClock').textContent = c; } if (d !== durStr) { durStr = d; $('dur').textContent = d; } }
 function renderReadouts() {
   const tb = $('ro'), m = S.mix, r = ref(), sa = m && m.st ? stOf(m) : null, sb = r && r.st ? stOf(r) : null;
   $('roAside').textContent = S.codec !== 'off' ? 'After MP3 ' + S.codec + ' kbps' : 'Source files';
@@ -607,6 +625,7 @@ function render() {
   const r = ready();
   renderInputs(); renderPads();
   $('play').disabled = !playable(); $('playLbl').textContent = S.playing ? 'Pause' : 'Play';
+  $('dPlay').disabled = !playable(); $('dPlayLbl').textContent = S.playing ? 'Pause' : 'Play';
   $('loop').setAttribute('aria-pressed', S.loop); $('cue').setAttribute('aria-pressed', S.cue); $('blind').setAttribute('aria-pressed', S.blind);
   const hasRegion = playable() && (S.loopIn > 0 || S.loopOut != null);
   $('clrLoop').hidden = !hasRegion;
@@ -652,19 +671,24 @@ function renderMon() {
 const monTog = (k, id) => $(id).addEventListener('click', () => { S[k] = !S[k]; try { localStorage.setItem('ab.mon', JSON.stringify({ pods: S.pods, xfeed: S.xfeed })); } catch (e) {} if (ctx) buildMonitor(); renderMon(); });
 monTog('pods', 'podsOn'); monTog('xfeed', 'xfeedOn'); renderMon();
 
-// ---------------------------------------------------------------- collapsible panels
-let collapsed = []; try { collapsed = JSON.parse(localStorage.getItem('ab.collapsed') || '[]'); } catch (e) {}
-document.querySelectorAll('.panel').forEach(p => {
-  const btn = p.querySelector('button.plate'); if (!btn) return;
-  const set = c => { p.classList.toggle('collapsed', c); btn.setAttribute('aria-expanded', !c); };
-  set(collapsed.includes(p.id));
-  btn.addEventListener('click', () => {
-    const c = !p.classList.contains('collapsed'); set(c);
-    collapsed = collapsed.filter(x => x !== p.id); if (c) collapsed.push(p.id);
-    try { localStorage.setItem('ab.collapsed', JSON.stringify(collapsed)); } catch (e) {}
-    if (!c) { if (sizeCanvas(cv)) drawScope(); if (sizeCanvas(ecv)) drawEq(); }
-  });
-});
+// ---------------------------------------------------------------- tabs
+const BUILD = '2026-11-27 · tabs';
+$('build').textContent = BUILD;
+try { localStorage.removeItem('ab.collapsed'); } catch (e) {}   // old collapsible panels; tabs replace them
+const VIEWS = ['tracks', 'listen', 'eq', 'mon', 'meters'];
+function showView(v) {
+  if (!VIEWS.includes(v)) v = 'tracks'; S.view = v;
+  document.querySelectorAll('.view').forEach(el => { el.hidden = el.dataset.view !== v; });
+  document.querySelectorAll('.tabbar [data-v]').forEach(b => b.setAttribute('aria-selected', b.dataset.v === v));
+  $('dock').hidden = v === 'listen';   // Listen has the big pads
+  try { localStorage.setItem('ab.view', v); } catch (e) {}
+  window.scrollTo(0, 0);
+  requestAnimationFrame(() => { if (v === 'listen' && sizeCanvas(cv)) { waveKey = ''; drawScope(); } if (v === 'eq' && sizeCanvas(ecv)) drawEq(); });
+}
+document.querySelector('.tabbar').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) showView(b.dataset.v); });
+$('dPlay').addEventListener('click', () => { S.playing ? stop() : start(S.offsetAt); });
+$('dL').addEventListener('click', () => select(padSide('L')));
+$('dR').addEventListener('click', () => select(padSide('R')));
 
 // ---------------------------------------------------------------- demo: a dull mix and two brighter, louder references
 function makeDemo() {
@@ -704,11 +728,12 @@ $('demo').addEventListener('click', async () => {
   await add(d.mix, 'Demo · my dull mix', true);
   await add(d.r1, 'Demo · loud bright master', false);
   await add(d.r2, 'Demo · open dynamic ref', false);
-  flash('Demo loaded: press Match ref in Balance EQ');
+  showView('listen'); flash('Demo loaded: press Play, then try Match ref on the EQ tab');
 });
 
 // ---------------------------------------------------------------- boot
 window.addEventListener('resize', () => { sizeCanvas(cv); sizeCanvas(ecv); drawScope(); drawEq(); });
-sizeCanvas(cv); sizeCanvas(ecv); render(); drawEq();
+let v0 = null; try { v0 = localStorage.getItem('ab.view'); } catch (e) {}
+showView(v0 || 'tracks'); sizeCanvas(cv); sizeCanvas(ecv); render(); drawEq();
 window.__ab = { S, tracks, eqDelta, gainDb };   // for tests
 })();
