@@ -32,7 +32,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const yieldUI = () => new Promise(r => setTimeout(r, 0));
 const ref = () => S.refs[S.sel] || null;
 const tracks = () => [S.mix, ...S.refs].filter(Boolean);
-const ready = () => !!(S.mix && S.mix.st && ref() && ref().st);
+const ready = () => !!(S.mix && S.mix.st && ref() && ref().st);   // both sides: needed for A/B, blind and the comparison tables
+const okMix = () => S.mix && S.mix.st ? S.mix : null, okRef = () => ref() && ref().st ? ref() : null;
+const playable = () => !!(okMix() || okRef());                      // one song is enough to play
 const tdur = t => t ? (t.duration || 0) : 0;
 const dur = () => Math.max(tdur(S.mix), tdur(ref()));
 const endPt = () => S.loopOut == null ? dur() : S.loopOut;
@@ -40,7 +42,7 @@ const hasEnc = t => S.codec !== 'off' && t.enc && t.enc.kbps === S.codec;
 const stOf = t => hasEnc(t) ? t.enc.st : t.st;
 const playBuf = t => hasEnc(t) ? t.enc.buf : t.buf;
 const offOf = t => hasEnc(t) ? t.enc.off : 0;
-const audible = () => S.side === 'mix' ? S.mix : ref();
+const audible = () => S.side === 'mix' ? (okMix() || okRef()) : (okRef() || okMix());
 const padSide = p => S.blind ? S.blindMap[p === 'L' ? 'X' : 'Y'] : (p === 'L' ? 'mix' : 'ref');
 function setStatus(t, p) { $('status').textContent = t || ''; const b = $('bar'); b.hidden = (p == null); if (p != null) $('barFill').style.width = Math.round(p * 100) + '%'; }
 let statusTimer = 0; function flash(t, ms = 3500) { setStatus(t); clearTimeout(statusTimer); statusTimer = setTimeout(() => { if ($('status').textContent === t) setStatus(''); }, ms); }
@@ -183,7 +185,7 @@ function tick() {
 }
 function restartIfPlaying() { if (S.playing) start(now()); else render(); }
 function select(side) {
-  if (!ready()) return; ensureCtx();
+  if (!(side === 'mix' ? okMix() : okRef())) return; ensureCtx();
   const changed = side !== S.side; S.side = side;
   if (!S.playing) start(S.cue ? S.loopIn : S.offsetAt);
   else if (S.cue) start(S.loopIn);
@@ -219,7 +221,7 @@ async function loadMix(file) {
   if (!file) return; const was = S.playing, at = now(); stop(true);
   const t = newTrack(file.name, file); S.mix = t; S.offsetAt = 0; S.loopIn = 0; S.loopOut = null; render();
   await loadInto(t, file);
-  if (was && ready()) start(Math.min(at, endPt() - 0.1)); else render();
+  if (was && playable()) start(Math.min(at, endPt() - 0.1)); else render();
 }
 async function addRefs(files) {
   const list = [...files].slice(0, MAX_REFS - S.refs.length);
@@ -228,7 +230,7 @@ async function addRefs(files) {
     const was = S.playing, at = now(); stop(true);
     const t = newTrack(file.name, file); S.refs.push(t); if (S.refs.length === 1) S.sel = 0; render();
     await loadInto(t, file);
-    if (was && ready()) start(at); else render();
+    if (was && playable()) start(at); else render();
   }
 }
 function removeRef(i) {
@@ -236,7 +238,7 @@ function removeRef(i) {
   S.refs.splice(i, 1);
   if (S.sel >= S.refs.length) S.sel = Math.max(0, S.refs.length - 1);
   if (!S.refs.length) S.side = 'mix';
-  if (was && ready()) start(at); else render();
+  if (was && playable()) start(at); else render();
   drawEq();
 }
 $('fileMix').addEventListener('change', e => { loadMix(e.target.files[0]); e.target.value = ''; });
@@ -289,7 +291,7 @@ async function encodeMany(list, token, label) {
   await Promise.all(Array.from({ length: Math.min(POOL, queue.length) }, run));
 }
 let codecResume = null;
-function resumePlayback() { const r = codecResume; codecResume = null; if (r && r.was && ready()) start(Math.min(r.at, endPt() - 0.05)); else render(); }
+function resumePlayback() { const r = codecResume; codecResume = null; if (r && r.was && playable()) start(Math.min(r.at, endPt() - 0.05)); else render(); }
 async function setCodec(k) {
   const token = ++encToken;
   if (!codecResume) codecResume = { was: S.playing, at: now() };   // survives quick knob turns through several settings
@@ -369,7 +371,7 @@ function sizeCanvas(c) { const r = c.getBoundingClientRect(), dpr = window.devic
 const wcv = document.createElement('canvas'), w2 = wcv.getContext('2d'); let waveKey = '';
 function scopeKey() {
   const rf = ref(), a = audible(), r2 = v => Math.round(v * 100);
-  return [cv.width, cv.height, S.blind, ready(), a && a.id, S.sel, S.loopIn, S.loopOut, dur(),
+  return [cv.width, cv.height, S.blind, ready(), S.side, a && a.id, S.sel, S.loopIn, S.loopOut, dur(),
     S.mix && S.mix.id, S.mix && !!S.mix.peaks, rf && rf.id, rf && !!rf.peaks,
     r2(gainDb(S.mix)), r2(gainDb(rf)), S.eq.on ? r2(eqDelta()) : 0].join('|');
 }
@@ -563,10 +565,10 @@ $('refList').addEventListener('click', e => { const s = e.target.closest('[data-
 function renderPads() {
   const r = ready();
   for (const p of ['L', 'R']) {
-    const side = padSide(p), t = side === 'mix' ? S.mix : ref(), on = r && S.side === side, b = $('pad' + p);
-    b.disabled = !r; b.dataset.on = on ? '1' : '0'; b.classList.toggle('blind', S.blind);
+    const side = padSide(p), t = side === 'mix' ? S.mix : ref(), has = S.blind ? r : !!(side === 'mix' ? okMix() : okRef()), on = has && audible() === t && (S.playing || r), b = $('pad' + p);
+    b.disabled = !has; b.dataset.on = on ? '1' : '0'; b.classList.toggle('blind', S.blind);
     $('big' + p).textContent = S.blind ? (p === 'L' ? 'X' : 'Y') : (p === 'L' ? 'MIX' : 'REF' + (S.refs.length > 1 ? ' ' + (S.sel + 1) : ''));
-    $('g' + p).textContent = r && !S.blind ? sgn(gainDb(t)) + ' dB' : '';
+    $('g' + p).textContent = has && !S.blind ? sgn(gainDb(t)) + ' dB' : '';
     $('st' + p).textContent = on ? 'On' : (S.blind ? 'Tap' : (p === 'L' ? 'Blade' : 'Body'));
   }
   const ch = $('refChips'); ch.hidden = S.refs.length < 2;
@@ -591,21 +593,22 @@ function renderReadouts() {
 }
 function renderReport() {
   const tb = $('report');
-  if (!ready()) { tb.innerHTML = '<tr><td class="m" colspan="4">Needs your mix and a reference.</td></tr>'; return; }
+  if (!playable()) { tb.innerHTML = '<tr><td class="m" colspan="4">Load a song to see what each service does to it.</td></tr>'; return; }
   if (hideNames()) { tb.innerHTML = '<tr><td class="m" colspan="4">Hidden during blind test.</td></tr>'; return; }
-  const m = S.mix, r = ref(), la = effLufs(m), lb = effLufs(r);
+  const m = okMix(), r = okRef(), la = m ? effLufs(m) : null, lb = r ? effLufs(r) : null, dash = '<td class="v">' + seg7('----', 4) + '</td>';
   tb.innerHTML = Object.keys(PLAT).map(p => {
-    const ga = platGainDb(la, stOf(m).tp, p), gb = platGainDb(lb, stOf(r).tp, p), pa = la + ga, pb = lb + gb, diff = Math.abs(pa - pb);
-    const louder = diff < 0.3 ? 'Even' : (pa > pb ? 'Mix' : 'Ref') + ' +' + diff.toFixed(1), cls = v => v < -0.05 ? ' hot' : (v > 0.05 ? ' ok' : '');
-    return '<tr class="' + (S.mode === 'plat' && p === S.plat ? 'sel' : '') + '"><td class="m">' + PLAT[p].name + '</td><td class="v' + cls(ga) + '">' + seg7(sgn(ga), 4) + '</td><td class="v' + cls(gb) + '">' + seg7(sgn(gb), 4) + '</td><td class="d">' + louder + '</td></tr>';
+    const ga = m ? platGainDb(la, stOf(m).tp, p) : 0, gb = r ? platGainDb(lb, stOf(r).tp, p) : 0, diff = m && r ? Math.abs((la + ga) - (lb + gb)) : null;
+    const louder = diff == null ? '' : (diff < 0.3 ? 'Even' : ((la + ga) > (lb + gb) ? 'Mix' : 'Ref') + ' +' + diff.toFixed(1)), cls = v => v < -0.05 ? ' hot' : (v > 0.05 ? ' ok' : '');
+    const cell = (has, g) => has ? '<td class="v' + cls(g) + '">' + seg7(sgn(g), 4) + '</td>' : dash;
+    return '<tr class="' + (S.mode === 'plat' && p === S.plat ? 'sel' : '') + '"><td class="m">' + PLAT[p].name + '</td>' + cell(m, ga) + cell(r, gb) + '<td class="d">' + louder + '</td></tr>';
   }).join('');
 }
 function render() {
   const r = ready();
   renderInputs(); renderPads();
-  $('play').disabled = !r; $('playLbl').textContent = S.playing ? 'Pause' : 'Play';
+  $('play').disabled = !playable(); $('playLbl').textContent = S.playing ? 'Pause' : 'Play';
   $('loop').setAttribute('aria-pressed', S.loop); $('cue').setAttribute('aria-pressed', S.cue); $('blind').setAttribute('aria-pressed', S.blind);
-  const hasRegion = r && (S.loopIn > 0 || S.loopOut != null);
+  const hasRegion = playable() && (S.loopIn > 0 || S.loopOut != null);
   $('clrLoop').hidden = !hasRegion;
   $('loopInfo').textContent = hasRegion ? 'Loop ' + fmt10(S.loopIn) + ' to ' + fmt10(endPt()) : 'Tap to seek · drag to loop';
   $('scopeAside').textContent = S.blind ? 'Blind: overlaid' : 'At playback gain';
@@ -628,7 +631,7 @@ $('blind').addEventListener('click', () => {
 $('clrLoop').addEventListener('click', () => { S.loopIn = 0; S.loopOut = null; render(); });
 document.addEventListener('keydown', e => {
   const tag = e.target.tagName; if (tag === 'SELECT' || (tag === 'INPUT' && e.target.type !== 'file') || e.target.getAttribute('role') === 'slider') return;
-  if (e.code === 'Space') { e.preventDefault(); if (ready()) select(S.side === 'mix' ? 'ref' : 'mix'); }
+  if (e.code === 'Space') { e.preventDefault(); if (ready()) select(S.side === 'mix' ? 'ref' : 'mix'); else if (playable()) { S.playing ? stop() : start(S.offsetAt); } }
   const n = parseInt(e.key, 10); if (n >= 1 && n <= S.refs.length) selectRef(n - 1);
 });
 
@@ -642,8 +645,9 @@ try { const m = JSON.parse(localStorage.getItem('ab.mon') || '{}'); S.pods = !!m
 function renderMon() {
   $('podsOn').setAttribute('aria-pressed', S.pods); $('xfeedOn').setAttribute('aria-pressed', S.xfeed);
   $('xfeedOn').disabled = SPK[S.mon].width === 0;
-  $('monInfo').innerHTML = S.pods ? '<b>AirPods Pro correction on.</b> Set Spatial Audio to Off in Control Center (press and hold the volume slider) and leave Conversation Boost off. Adaptive EQ stays on and cannot be disabled, so treat small tonal differences with caution.'
-    : 'Using AirPods Pro? Turn on the correction for a flatter starting point.';
+  $('monInfo').innerHTML = S.pods
+    ? '<b>AirPods Pro correction on.</b> It was built from measurements with Spatial Audio off, so keep Spatial Audio off for tone checks (Control Center: press and hold the volume slider). Adaptive EQ cannot be disabled, so trust broad moves more than small ones.'
+    : '<b>Using AirPods Pro?</b> Turn on the correction for a flatter starting point. Spatial Audio can be a second opinion on stereo image and depth, but it changes the tone, so use it with the correction and Speakers in front both off.';
 }
 const monTog = (k, id) => $(id).addEventListener('click', () => { S[k] = !S[k]; try { localStorage.setItem('ab.mon', JSON.stringify({ pods: S.pods, xfeed: S.xfeed })); } catch (e) {} if (ctx) buildMonitor(); renderMon(); });
 monTog('pods', 'podsOn'); monTog('xfeed', 'xfeedOn'); renderMon();
