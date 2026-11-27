@@ -103,7 +103,7 @@ function start(at) {
   ensureCtx(); stop(true);
   if (at >= endPt() || at < 0) at = S.loopIn;
   S.offsetAt = at; S.startAt = ctx.currentTime + 0.05; eqNodes = [];
-  for (const t of tracks()) {
+  for (const t of [S.mix, ref()].filter(Boolean)) {   // only the pair being compared plays; muted refs cost CPU on phones
     const b = playBuf(t); if (!b) continue;
     const src = ctx.createBufferSource(); src.buffer = b;
     const g = ctx.createGain(); src.connect(g);
@@ -139,7 +139,7 @@ function select(side) {
 function selectRef(i) {
   if (i < 0 || i >= S.refs.length) return;
   S.sel = i; S.side = 'ref';
-  if (S.playing) { if (S.cue) start(S.loopIn); else applyGains(true); }
+  if (S.playing) start(S.cue ? S.loopIn : now());
   render(); drawEq();
 }
 
@@ -292,7 +292,7 @@ function Knob(el, { label, options, value, onChange }) {
   const ticks = options.map((o, i) => { const t = document.createElement('span'); t.className = 'tick'; const a = angleOf(i) * Math.PI / 180, R = 50;
     t.style.transform = 'translate(' + (Math.sin(a) * R) + 'px,' + (-Math.cos(a) * R) + 'px)'; dial.appendChild(t); return t; });
   let idx = Math.max(0, options.findIndex(o => o.v === value));
-  const show = () => { img.style.backgroundPosition = '0 ' + (frameOf(angleOf(idx)) / 60 * 100) + '%'; ticks.forEach((t, i) => t.classList.toggle('on', i === idx));
+  const show = () => { const fr = frameOf(angleOf(idx)); img.style.backgroundPosition = ((fr % 8) / 7 * 100) + '% ' + (Math.floor(fr / 8) / 7 * 100) + '%'; ticks.forEach((t, i) => t.classList.toggle('on', i === idx));
     val.textContent = options[idx].t; dial.setAttribute('aria-valuetext', options[idx].t); dial.setAttribute('aria-valuenow', idx); dial.setAttribute('aria-valuemin', 0); dial.setAttribute('aria-valuemax', n - 1); };
   const set = (i, fire = true) => { i = Math.max(0, Math.min(n - 1, i)); if (i === idx) return; idx = i; show(); if (fire) onChange(options[idx].v); };
   let drag = null;
@@ -309,8 +309,28 @@ function Knob(el, { label, options, value, onChange }) {
 const cv = $('cv'), g2 = cv.getContext('2d');
 const C = { grid: 'rgba(125,255,162,.08)', rule: 'rgba(125,255,162,.2)', dim: 'rgba(125,255,162,.55)', ink: '#7DFFA2', mix: '#FF6A1A', ref: '#7FB4EA', amber: '#FFB347' };
 function sizeCanvas(c) { const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; if (!r.width) return false; c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); return true; }
+/* The waveforms only change when tracks, gains, loop or A/B side change, so they are painted once into an
+   offscreen canvas and each frame just copies it and draws the playhead. Painting them every frame with a glow
+   was the main cost on phones. */
+const wcv = document.createElement('canvas'), w2 = wcv.getContext('2d'); let waveKey = '';
+function scopeKey() {
+  const rf = ref(), a = audible(), r2 = v => Math.round(v * 100);
+  return [cv.width, cv.height, S.blind, ready(), a && a.id, S.sel, S.loopIn, S.loopOut, dur(),
+    S.mix && S.mix.id, S.mix && !!S.mix.peaks, rf && rf.id, rf && !!rf.peaks,
+    r2(gainDb(S.mix)), r2(gainDb(rf)), S.eq.on ? r2(eqDelta()) : 0].join('|');
+}
 function drawScope() {
   const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1; if (!W) return;
+  const k = scopeKey();
+  if (k !== waveKey) { waveKey = k; if (wcv.width !== W || wcv.height !== H) { wcv.width = W; wcv.height = H; } paintScope(w2); }
+  g2.clearRect(0, 0, W, H); g2.drawImage(wcv, 0, 0);
+  const Dn = dur(); if (!Dn) return;
+  const x = Math.round(Math.min(now(), Dn) / Dn * W) + .5;
+  g2.strokeStyle = C.amber; g2.globalAlpha = 0.25; g2.lineWidth = 7 * dpr; g2.beginPath(); g2.moveTo(x, 0); g2.lineTo(x, H); g2.stroke();
+  g2.globalAlpha = 1; g2.lineWidth = 2 * dpr; g2.beginPath(); g2.moveTo(x, 0); g2.lineTo(x, H); g2.stroke();
+}
+function paintScope(g2) {
+  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1;
   g2.clearRect(0, 0, W, H);
   const Dn = dur(), r = ready(), rf = ref();
   $('scopeEmpty').hidden = !!((S.mix && S.mix.peaks) || (rf && rf.peaks));
@@ -325,9 +345,10 @@ function drawScope() {
     if (!t || !t.peaks) return; const p = t.peaks, gl = Math.pow(10, gainDb(t) / 20) * (t === S.mix && S.eq.on ? Math.pow(10, eqDelta() / 20) : 1);
     const wpx = p.dur / Dn * W, cy = H * L.c, lim = L.h * 2.15;
     g2.fillStyle = col; g2.globalAlpha = alpha; if (glow) { g2.shadowColor = col; g2.shadowBlur = 10 * dpr; }
+    g2.beginPath();   // one path and one fill, so the glow is computed once, not once per column
     for (let x = 0; x < wpx; x++) { const c = Math.min(p.cols - 1, Math.floor(x / wpx * p.cols));
-      const top = Math.max(cy - lim, cy - p.mx[c] * gl * L.h * 2), bot = Math.min(cy + lim, cy - p.mn[c] * gl * L.h * 2); g2.fillRect(x, top, 1, Math.max(1, bot - top)); }
-    g2.globalAlpha = 1; g2.shadowBlur = 0;
+      const top = Math.max(cy - lim, cy - p.mx[c] * gl * L.h * 2), bot = Math.min(cy + lim, cy - p.mn[c] * gl * L.h * 2); g2.rect(x, top, 1, Math.max(1, bot - top)); }
+    g2.fill(); g2.globalAlpha = 1; g2.shadowBlur = 0;
   };
   const aud = audible();
   if (S.blind) { env(S.mix, lanes[0], C.ink, 0.3); env(rf, lanes[0], C.ink, 0.3); }
@@ -335,8 +356,6 @@ function drawScope() {
   g2.fillStyle = C.dim; g2.font = '700 ' + (11 * dpr) + 'px "Doto", "VT323", monospace'; g2.textBaseline = 'top';
   if (!S.blind) { g2.fillText('MIX', 4 * dpr, 4 * dpr); g2.fillText(rf ? 'REF ' + (S.sel + 1) : 'REF', 4 * dpr, H / 2 + 4 * dpr); }
   g2.textBaseline = 'bottom'; for (let i = 1; i < 10; i += 2) g2.fillText(fmt(Dn * i / 10), W * i / 10 + 3 * dpr, H - 3 * dpr);
-  const x = Math.round(Math.min(now(), Dn) / Dn * W) + .5;
-  g2.strokeStyle = C.amber; g2.lineWidth = 2 * dpr; g2.shadowColor = C.amber; g2.shadowBlur = 8 * dpr; g2.beginPath(); g2.moveTo(x, 0); g2.lineTo(x, H); g2.stroke(); g2.shadowBlur = 0;
 }
 let ptr = null;
 cv.addEventListener('pointerdown', e => { if (!dur()) return; cv.setPointerCapture(e.pointerId); const r = cv.getBoundingClientRect(); ptr = { x0: e.clientX - r.left, w: r.width, drag: false, x: e.clientX - r.left }; });
@@ -465,8 +484,10 @@ function updateMeter(reset) {
     let pk = 0; for (let i = 0; i < meterBuf.length; i++) { const v = Math.abs(meterBuf[i]); if (v > pk) pk = v; }
     lit = Math.max(0, Math.min(MSEG, Math.round(((pk > 0 ? 20 * Math.log10(pk) : -99) + 48) / 48 * MSEG))); peakHold = Math.max(lit, peakHold - 0.25); }
   else peakHold = 0;
-  const hold = Math.round(peakHold); msegs.forEach((s, i) => { s.classList.toggle('on', i < lit); s.classList.toggle('pk', hold > 0 && i === hold - 1); });
+  const hold = Math.round(peakHold); if (lit === meterLit && hold === meterHold) return; meterLit = lit; meterHold = hold;
+  msegs.forEach((s, i) => { s.classList.toggle('on', i < lit); s.classList.toggle('pk', hold > 0 && i === hold - 1); });
 }
+let meterLit = -1, meterHold = -1;
 
 // ---------------------------------------------------------------- render
 const hideNames = () => S.blind && ready();
@@ -498,7 +519,9 @@ function renderPads() {
   ch.innerHTML = S.refs.map((t, i) => `<button class="chip" data-chip="${i}" aria-pressed="${i === S.sel}"><i></i><span>${i + 1} · ${esc(hideNames() ? 'Ref' : t.name.replace(/\.[^.]+$/, ''))}</span></button>`).join('');
 }
 $('refChips').addEventListener('click', e => { const c = e.target.closest('[data-chip]'); if (c) selectRef(+c.dataset.chip); });
-function updateClock() { $('clock').innerHTML = seg7(fmt10(Math.min(now(), dur())), 4); $('dur').textContent = fmt(dur()); }
+let clockStr = '', durStr = '';   // the clock shows tenths, so rebuild its SVG only when the text changes
+function updateClock() { const c = fmt10(Math.min(now(), dur())), d = fmt(dur());
+  if (c !== clockStr) { clockStr = c; $('clock').innerHTML = seg7(c, 4); } if (d !== durStr) { durStr = d; $('dur').textContent = d; } }
 function renderReadouts() {
   const tb = $('ro'), m = S.mix, r = ref(), sa = m && m.st ? stOf(m) : null, sb = r && r.st ? stOf(r) : null;
   $('roAside').textContent = S.codec !== 'off' ? 'After MP3 ' + S.codec + ' kbps' : 'Source files';
