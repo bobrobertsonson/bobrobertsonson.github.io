@@ -153,6 +153,7 @@ button{font-family:inherit}
 .pad:disabled{cursor:not-allowed}
 .keys{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px}
 .keys .btn{padding:0 6px;min-width:0}
+.keys.mon{grid-template-columns:1fr 1fr}
 
 /* chicken-head selectors with LED rings */
 .knobs{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 12px}
@@ -380,6 +381,11 @@ input[type=range]:disabled{opacity:.4}
         <div class="knob" id="kCodec"></div>
         <div class="knob" id="kSpk"></div>
       </div>
+      <div class="keys mon">
+        <button class="btn tog" id="podsOn" aria-pressed="false">AirPods Pro</button>
+        <button class="btn tog" id="xfeedOn" aria-pressed="false">Speakers in front</button>
+      </div>
+      <p class="note" id="monInfo"></p>
     </div>
   </div></section>
 

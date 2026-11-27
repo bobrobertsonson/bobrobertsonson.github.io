@@ -15,7 +15,7 @@ const PLAT = {
 const S = {
   mix: null, refs: [], sel: 0, side: 'mix',
   playing: false, startAt: 0, offsetAt: 0, loop: true, cue: false, blind: false, blindMap: { X: 'mix', Y: 'ref' },
-  mode: 'match', plat: 'spotify', codec: 'off', mon: 'full', loopIn: 0, loopOut: null,
+  mode: 'match', plat: 'spotify', codec: 'off', mon: 'full', pods: false, xfeed: false, loopIn: 0, loopOut: null,
   eq: { on: true, bands: D.DEFAULT_BANDS(), sel: 2, amount: 0.75, fit: null },
 };
 let ctx = null, monIn = null, monNodes = [], analyser = null, meterBuf = null, peakHold = 0;
@@ -70,19 +70,73 @@ function gainDb(t) {
 // ---------------------------------------------------------------- audio graph
 function ensureCtx() {
   try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
-  if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); monIn = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 1024; buildMonitor(); }
+  if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); monIn = ctx.createGain(); monIn.channelCount = 2; monIn.channelCountMode = 'explicit'; monIn.channelInterpretation = 'speakers'; /* mono files reach both sides of the stereo stages */ analyser = ctx.createAnalyser(); analyser.fftSize = 1024; buildMonitor(); }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
 function bq(type, f, q, g) { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; if (g != null) n.gain.value = g; return n; }
+/* AirPods Pro 2 correction toward the Harman in-ear target: the average of three published AutoEq corrections
+   (HypetheSonics GRAS, Rtings B&K 5128, Filk), fitted to five gentle bands where the measurements agree.
+   The measurements differ by up to ~4 dB above 2 kHz and Adaptive EQ moves things further, so this is a
+   broad correction, not a calibration. AutoEq is MIT licensed (c) Jaakko Pasanen. */
+const PODS = [{ t: 'lowshelf', f: 132, g: 0.9 }, { t: 'peaking', f: 382, g: -2, q: 1 }, { t: 'peaking', f: 4000, g: 2.1, q: 0.7 },
+  { t: 'peaking', f: 6968, g: -1.2, q: 2 }, { t: 'highshelf', f: 7808, g: 0.7 }];
+const PODS_TRIM = -2.1;   // keeps the correction from adding level, so A/B with it on or off stays fair
+/* Translation targets. Rough models of each kind of system, not measurements of a specific one.
+   eq: [type, Hz, Q, dB]. width: 1 is full stereo, 0 is mono. trim: dB before the model, so boosts do not clip. */
+const SPK = {
+  full: { name: 'Full range', width: 1, eq: [] },
+  mono: { name: 'Mono', width: 0, eq: [] },
+  phone: { name: 'Phone', width: 0, eq: [['highpass', 350, 0.7], ['highpass', 350, 0.7], ['peaking', 2500, 1, 4], ['lowpass', 9000, 0.7]] },
+  laptop: { name: 'Laptop', width: 0.35, eq: [['highpass', 180, 0.7], ['highpass', 180, 0.7], ['peaking', 900, 1.2, 2], ['peaking', 4000, 1.5, 3], ['lowpass', 15000, 0.7]] },
+  bt: { name: 'BT speaker', width: 0, trim: -2, eq: [['highpass', 65, 0.7], ['highpass', 65, 0.7], ['peaking', 110, 1.6, 6], ['peaking', 450, 1, -2], ['lowpass', 14000, 0.7]] },
+  car: { name: 'Car', width: 0.6, trim: -5.5, eq: [['peaking', 55, 0.9, 6], ['peaking', 160, 1, 2.5], ['peaking', 1200, 1.2, -3], ['peaking', 3200, 2, 1.5], ['highshelf', 6500, 0.7, -4]] },
+  club: { name: 'Club', width: 0.3, trim: -7, room: true, eq: [['highpass', 32, 0.7], ['lowshelf', 90, 0.7, 7], ['peaking', 400, 0.8, -1.5], ['highshelf', 7000, 0.7, -3]] },
+};
+let roomIR = null;
+function makeRoomIR() {   // decaying stereo noise, about 1 s, darker as it decays: a big untreated room
+  const fs = ctx.sampleRate, n = Math.round(fs * 1.1), b = ctx.createBuffer(2, n, fs);
+  for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); let lp = 0, seed = 11 + c * 7;
+    for (let i = 0; i < n; i++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; const x = seed / 0x7fffffff * 2 - 1, t = i / fs;
+      lp += (0.6 - 0.5 * Math.min(1, t / 0.8)) * (x - lp); d[i] = lp * Math.exp(-t * 6.5) * (t < 0.012 ? 0 : 1); } }
+  return b;
+}
+/* Width: blend each side toward the mid. w = 1 stereo, 0 mono. */
+function widthStage(w) {
+  const sp = ctx.createChannelSplitter(2), mg = ctx.createChannelMerger(2), keep = (1 + w) / 2, bleed = (1 - w) / 2;
+  const g = v => { const n = ctx.createGain(); n.gain.value = v; return n; };
+  const ll = g(keep), rr = g(keep), lr = g(bleed), rl = g(bleed);
+  sp.connect(ll, 0); sp.connect(lr, 0); sp.connect(rr, 1); sp.connect(rl, 1);
+  ll.connect(mg, 0, 0); rl.connect(mg, 0, 0); rr.connect(mg, 0, 1); lr.connect(mg, 0, 1);
+  monNodes.push(sp, mg, ll, rr, lr, rl); return { input: sp, output: mg };
+}
+/* Crossfeed: each ear also hears the other speaker, a little later and duller, as with speakers in front of you. */
+function crossfeedStage() {
+  const sp = ctx.createChannelSplitter(2), mg = ctx.createChannelMerger(2), nodes = [sp, mg];
+  const direct = [ctx.createGain(), ctx.createGain()]; direct.forEach(n => { n.gain.value = 0.84; nodes.push(n); });
+  sp.connect(direct[0], 0); sp.connect(direct[1], 1); direct[0].connect(mg, 0, 0); direct[1].connect(mg, 0, 1);
+  for (const [from, to] of [[0, 1], [1, 0]]) {
+    const d = ctx.createDelay(0.01); d.delayTime.value = 0.00028; const lp = bq('lowpass', 900, 0.5), hs = bq('highshelf', 2500, 0.7, -3), g = ctx.createGain(); g.gain.value = 0.42;
+    sp.connect(d, from); d.connect(lp); lp.connect(hs); hs.connect(g); g.connect(mg, 0, to); nodes.push(d, lp, hs, g);
+  }
+  monNodes.push(...nodes); return { input: sp, output: mg };
+}
 function buildMonitor() {
   if (!ctx) return;
   monIn.disconnect(); monNodes.forEach(n => n.disconnect()); monNodes = [];
   monIn.connect(analyser);
-  if (S.mon === 'full') { monIn.connect(ctx.destination); return; }
-  const m = ctx.createGain(); m.channelCount = 1; m.channelCountMode = 'explicit'; m.channelInterpretation = 'speakers';
-  monIn.connect(m); monNodes.push(m); let last = m;
-  if (S.mon === 'phone') [bq('highpass', 350, 0.7), bq('highpass', 350, 0.7), bq('peaking', 2500, 1, 4), bq('lowpass', 9000, 0.7)].forEach(n => { last.connect(n); last = n; monNodes.push(n); });
+  const spk = SPK[S.mon] || SPK.full; let last = monIn;
+  const chain = n => { last.connect(n.input || n); last = n.output || n; if (!n.input) monNodes.push(n); };
+  if (spk.trim) { const t = ctx.createGain(); t.gain.value = Math.pow(10, spk.trim / 20); chain(t); }   // bass-heavy models would otherwise clip loud masters
+  if (spk.width < 1) chain(widthStage(spk.width));
+  spk.eq.forEach(([t, f, q, g]) => chain(bq(t, f, q, g)));
+  if (spk.room) {   // dry plus a little of the room
+    if (!roomIR) roomIR = makeRoomIR();
+    const cv = ctx.createConvolver(); cv.buffer = roomIR; const wet = ctx.createGain(); wet.gain.value = 0.22; const sum = ctx.createGain();
+    last.connect(sum); last.connect(cv); cv.connect(wet); wet.connect(sum); monNodes.push(cv, wet, sum); last = sum;
+  }
+  if (S.xfeed && spk.width > 0) chain(crossfeedStage());
+  if (S.pods) { const t = ctx.createGain(); t.gain.value = Math.pow(10, PODS_TRIM / 20); chain(t); PODS.forEach(b => chain(bq(b.t, b.f, b.q || 0.71, b.g))); }
   last.connect(ctx.destination);
 }
 const NODE_TYPE = { ls: 'lowshelf', pk: 'peaking', hs: 'highshelf' };
@@ -582,7 +636,17 @@ const kVol = Knob($('kVol'), { label: 'Volume', value: 'match', options: [{ v: '
   onChange: v => { S.mode = v; if (S.playing) applyGains(true); render(); } });
 Knob($('kPlat'), { label: 'Platform', value: 'spotify', options: Object.keys(PLAT).map(k => ({ v: k, t: PLAT[k].short })), onChange: v => { S.plat = v; if (S.playing) applyGains(true); render(); } });
 const kCodec = Knob($('kCodec'), { label: 'Codec', value: 'off', options: [{ v: 'off', t: 'Lossless' }, { v: '320', t: 'MP3 320' }, { v: '192', t: 'MP3 192' }, { v: '128', t: 'MP3 128' }, { v: '96', t: 'MP3 96' }], onChange: v => setCodec(v) });
-Knob($('kSpk'), { label: 'Speaker', value: 'full', options: [{ v: 'full', t: 'Full range' }, { v: 'mono', t: 'Mono' }, { v: 'phone', t: 'Phone' }], onChange: v => { S.mon = v; ensureCtx(); buildMonitor(); } });
+Knob($('kSpk'), { label: 'Speaker', value: 'full', options: Object.keys(SPK).map(k => ({ v: k, t: SPK[k].name })), onChange: v => { S.mon = v; ensureCtx(); buildMonitor(); renderMon(); } });
+/* Headphone path: AirPods Pro correction and crossfed "speakers in front". Saved per device. */
+try { const m = JSON.parse(localStorage.getItem('ab.mon') || '{}'); S.pods = !!m.pods; S.xfeed = !!m.xfeed; } catch (e) {}
+function renderMon() {
+  $('podsOn').setAttribute('aria-pressed', S.pods); $('xfeedOn').setAttribute('aria-pressed', S.xfeed);
+  $('xfeedOn').disabled = SPK[S.mon].width === 0;
+  $('monInfo').innerHTML = S.pods ? '<b>AirPods Pro correction on.</b> Set Spatial Audio to Off in Control Center (press and hold the volume slider) and leave Conversation Boost off. Adaptive EQ stays on and cannot be disabled, so treat small tonal differences with caution.'
+    : 'Using AirPods Pro? Turn on the correction for a flatter starting point.';
+}
+const monTog = (k, id) => $(id).addEventListener('click', () => { S[k] = !S[k]; try { localStorage.setItem('ab.mon', JSON.stringify({ pods: S.pods, xfeed: S.xfeed })); } catch (e) {} if (ctx) buildMonitor(); renderMon(); });
+monTog('pods', 'podsOn'); monTog('xfeed', 'xfeedOn'); renderMon();
 
 // ---------------------------------------------------------------- collapsible panels
 let collapsed = []; try { collapsed = JSON.parse(localStorage.getItem('ab.collapsed') || '[]'); } catch (e) {}
